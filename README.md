@@ -89,10 +89,12 @@ The full list, with each entry's spec names, is in [docs/components.md](docs/com
 The package is a binding layer, not a reimplementation, so UI SDK's framework-agnostic tools
 work unchanged on the rendered page:
 
-- **`@ui-sdk/core/testing`** checks a rendered component against its WAI-ARIA pattern
-  (`checkPattern`), in right-to-left and on the server.
-- **`@ui-sdk/core/agent`** exposes `snapshot` and `act` over the same markup, so an agent can
-  read and operate the interface.
+- **`foldkit-ui-sdk/testing`** (UI SDK's `checkPattern`, `settle` and part readers) checks a
+  rendered component against its WAI-ARIA pattern, in right-to-left and on the server.
+- **`foldkit-ui-sdk/agent`** (`createAgent`, then its `snapshot` and `act`) reads and operates
+  the same markup, so an agent can drive the interface.
+- **`foldkit-ui-sdk/observe`** and **`foldkit-ui-sdk/shortcuts`** are the page observation and
+  shortcut managers, unchanged.
 - **Controllers** are on each element (`el.api`), for programmatic open, focus, selection and
   the rest.
 

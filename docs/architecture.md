@@ -10,6 +10,7 @@ Model and the property/event seam.
 | --- | --- | --- |
 | Generated bindings | `packages/foldkit-ui-sdk/src/entries/<entry>.ts` | One `CustomElement.define` spec per `ui-*` tag, plus the side-effect import that registers that entry's elements |
 | Root barrel | `packages/foldkit-ui-sdk/src/index.ts` | `export * as <Component>` per entry, and the pinned UI SDK version |
+| Tooling | `src/testing.ts`, `src/agent.ts`, `src/observe.ts`, `src/shortcuts.ts` | Re-exports of UI SDK's framework-agnostic helpers, so one package covers components, testing and agents |
 | Generator | `packages/foldkit-ui-sdk/scripts/generate.mjs` | Reads `@ui-sdk/web/custom-elements.json` and writes both layers |
 | Tests | `packages/foldkit-ui-sdk/test/` | Coverage against the same manifest; browser behavior in `tests/` |
 | Example | `examples/poc/` | A real Foldkit app using Toggle, Tabs and Popover |
