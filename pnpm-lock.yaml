@@ -176,50 +176,6 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  examples/poc:
-    dependencies:
-      '@effect/platform-browser':
-        specifier: ^4.1.4
-        version: 4.1.4(effect@4.1.4)
-      effect:
-        specifier: ^4.1.4
-        version: 4.1.4
-      foldkit:
-        specifier: 0.171.0
-        version: 0.171.0(@effect/platform-browser@4.1.4(effect@4.1.4))(effect@4.1.4)
-      foldkit-ui-sdk:
-        specifier: workspace:*
-        version: link:../../packages/foldkit-ui-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.9.0
-        version: 5.9.3
-      vite:
-        specifier: ^7.0.0
-        version: 7.3.8(@types/node@24.19.2)
-
-  examples/showcase:
-    dependencies:
-      '@effect/platform-browser':
-        specifier: ^4.1.4
-        version: 4.1.4(effect@4.1.4)
-      effect:
-        specifier: ^4.1.4
-        version: 4.1.4
-      foldkit:
-        specifier: 0.171.0
-        version: 0.171.0(@effect/platform-browser@4.1.4(effect@4.1.4))(effect@4.1.4)
-      foldkit-ui-sdk:
-        specifier: workspace:*
-        version: link:../../packages/foldkit-ui-sdk
-    devDependencies:
-      typescript:
-        specifier: ^5.9.0
-        version: 5.9.3
-      vite:
-        specifier: ^7.0.0
-        version: 7.3.8(@types/node@24.19.2)
-
   examples/site:
     dependencies:
       '@effect/platform-browser':

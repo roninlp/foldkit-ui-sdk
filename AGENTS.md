@@ -11,7 +11,7 @@ pnpm run generate         # rewrite src/entries and src/index.ts from the manife
 pnpm run check:generated  # fail when generated files are stale
 pnpm run typecheck
 pnpm test                 # unit tests against the manifest
-pnpm run test:e2e         # Playwright against examples/poc
+pnpm run test:e2e         # Playwright against the site
 pnpm run check            # all of the above
 ```
 
@@ -34,10 +34,9 @@ pnpm run check            # all of the above
 ## Layout
 
 - `packages/foldkit-ui-sdk`: the published package.
-- `examples/poc`: the minimal Foldkit app the first browser test drives.
-- `examples/showcase`: the sixteen-component showcase, styled with UI SDK's own vendored
-  `web.css`; the source of `docs/screenshot.png` (`pnpm run screenshot`).
-- `examples/site`: the marketing and docs site, built with the bindings it documents, with the
-  agents guide and a live agent-bridge demo.
-- `tests`: Playwright specs, one per example.
+- `examples/site`: the marketing, docs and showcase app, built with the bindings it
+  documents — per-component docs pages with a left sidebar that run their component live,
+  a sixteen-demo showcase (the source of `docs/screenshot.png`, `pnpm run screenshot`), and
+  a live agent-bridge demo.
+- `tests`: the Playwright spec that drives the site.
 - `docs`: architecture, the generated component index, CI, and the screenshot.

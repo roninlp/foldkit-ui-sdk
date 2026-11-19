@@ -1,116 +1,24 @@
-import { Effect, Schema } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
-import { type Document, type HtmlBuilder } from 'foldkit/html'
-import { defineMessageUnion } from 'foldkit/message'
-import { modifyFields } from 'foldkit/struct'
+import type { Document, Html, HtmlBuilder } from 'foldkit/html'
 
 // The site is the docs, rendered with the thing it documents: the navigation
 // is a SegmentedControl, the FAQ is an Accordion, the version chip is a
-// Tooltip, and the agents page drives a Switch through the real agent bridge.
+// Tooltip, the showcase and every component docs page run the real bindings,
+// and the agents page drives a Switch through the real agent bridge.
 import { Accordion, SegmentedControl, Switch, Tooltip, uiSdkVersion } from 'foldkit-ui-sdk'
 
 // The component index is generated into docs/components.md by the same script
 // that generates the bindings, so the site documents the exact build it runs.
 import componentsMarkdown from '../../../docs/components.md?raw'
 
-// The agent bridge, created before the first render in bridge.ts.
-import { agent } from './bridge'
+import { demos, findDemo } from './demos'
 
-// MODEL
-
-export const Model = Schema.Struct({
-  page: Schema.Literals(['home', 'docs', 'agents', 'components']),
-  notifications: Schema.Boolean,
-  agentLog: Schema.String,
-})
-export type Model = typeof Model.Type
-
-// MESSAGE
-
-export const Message = defineMessageUnion({
-  SetPage: { page: Schema.Literals(['home', 'docs', 'agents', 'components']) },
-  ChangedNotifications: { checked: Schema.Boolean },
-  ClickedAgentSnapshot: {},
-  FinishedAgentSnapshot: { log: Schema.String },
-  ClickedAgentAct: {},
-  FinishedAgentAct: { log: Schema.String },
-})
-export type Message = typeof Message.Type
-
-// COMMANDS — the agent bridge is a Promise API, so the demo runs it as a
-// Foldkit Command and reports back with a Message.
-
-const SnapshotAgent = Command.define('SnapshotAgent', {
-  messages: [Message.FinishedAgentSnapshot],
-  execute: Effect.promise(async () => {
-    const found = agent.snapshot()
-    const lines = found
-      .slice(0, 8)
-      .map(c => `${c.ref}  ${c.component}${c.label ? ` "${c.label}"` : ''}  [${c.actions.join(', ')}]`)
-    return Message.FinishedAgentSnapshot({
-      log: `${found.length} components on the page.\n\n${lines.join('\n')}`,
-    })
-  }),
-})
-
-const ActAgent = Command.define('ActAgent', {
-  messages: [Message.FinishedAgentAct],
-  execute: Effect.promise(async () => {
-    const result = await agent.act({
-      steps: [{ ref: 'Notifications', action: 'setChecked', args: [true] }],
-    })
-    const changes = result.steps.flatMap(step =>
-      (step.changes ?? []).map(change => {
-        const label = change.label ? ` "${change.label}"` : ''
-        return `${change.component}${label}: ${change.key} = ${String(change.value)}`
-      }),
-    )
-    return Message.FinishedAgentAct({
-      log: result.ok
-        ? `Agent ran 1 step on the switch, through the same checkedchange event a click fires.\n\n${changes.join('\n')}`
-        : `The agent could not run the step: ${result.error?.message ?? 'unknown error'}`,
-    })
-  }),
-})
-
-// UPDATE
-
-export const update = (model: Model, message: Message) =>
-  Message.match<Update.Return<Model, Message>>(message, {
-    SetPage: ({ page }) => ({
-      model: modifyFields(model, { page: () => page }),
-    }),
-    ChangedNotifications: ({ checked }) => ({
-      model: modifyFields(model, { notifications: () => checked }),
-    }),
-    ClickedAgentSnapshot: () => ({
-      model,
-      commands: [SnapshotAgent()],
-    }),
-    FinishedAgentSnapshot: ({ log }) => ({
-      model: modifyFields(model, { agentLog: () => log }),
-    }),
-    ClickedAgentAct: () => ({
-      model,
-      commands: [ActAgent()],
-    }),
-    FinishedAgentAct: ({ log }) => ({
-      model: modifyFields(model, { agentLog: () => log }),
-    }),
-  })
-
-// INIT
-
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
-  model: {
-    page: 'home',
-    notifications: false,
-    agentLog: 'Run one of the two steps above.',
-  },
-})
+// Re-exported for entry.ts, which starts the runtime.
+export { Message, Model, init, update } from './model'
+import { Message, type Model, type Page } from './model'
 
 // The component index, parsed from the same generated Markdown the README
 // links to. Counting it at runtime keeps the site honest about its build.
+
 type ComponentEntry = {
   namespace: string
   entry: string
@@ -139,6 +47,17 @@ const parseComponents = (markdown: string): ComponentEntry[] =>
 
 const components = parseComponents(componentsMarkdown)
 const totalSpecs = components.reduce((count, entry) => count + entry.specs.length, 0)
+
+const componentByNamespace = (namespace: string): ComponentEntry | undefined =>
+  components.find(entry => entry.namespace === namespace)
+
+const kebab = (name: string) =>
+  name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+
+// The tag a spec renders: Root is the component's own tag, every other part
+// appends its name, the same rule the generator uses for the entries.
+const specTag = (entry: string, spec: string) =>
+  spec === 'Root' ? `ui-${entry}` : `ui-${entry}-${kebab(spec)}`
 
 // VIEW
 
@@ -261,6 +180,19 @@ const goodies = [
   ['element.api', 'Controllers on each element, for programmatic open, focus, selection and the rest.'],
 ]
 
+// The docs sidebar: the guides, then the component pages, then the index.
+
+const guides: ReadonlyArray<{ slug: string; title: string }> = [
+  { slug: 'introduction', title: 'Introduction' },
+  { slug: 'install', title: 'Install' },
+  { slug: 'bindings', title: 'The shape of a binding' },
+  { slug: 'imports', title: 'Imports' },
+  { slug: 'goodies', title: 'Goodies' },
+  { slug: 'commands', title: 'Commands and the agent bridge' },
+  { slug: 'limits', title: 'Limits' },
+  { slug: 'development', title: 'Development' },
+]
+
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const segmented = SegmentedControl.Root.withMessage(h)
   const segmentedIndicator = SegmentedControl.Indicator.withMessage(h)
@@ -276,7 +208,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const tooltipTrigger = Tooltip.Trigger.withMessage(h)
   const tooltipContent = Tooltip.Content.withMessage(h)
 
-  const pageButton = (text: string, page: Model['page'], solid = false) =>
+  const pageButton = (text: string, page: Page, solid = false) =>
     h.button(
       [
         h.Type('button'),
@@ -290,6 +222,8 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
   const h2 = (text: string) => h.h2([h.Class('prose-h')], [text])
 
+  const prose = (text: string) => h.p([h.Class('prose-p')], [text])
+
   const nav = h.header([h.Class('topbar')], [
     h.button(
       [h.Type('button'), h.Class('brand'), h.OnClick(Message.SetPage({ page: 'home' }))],
@@ -300,7 +234,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         segmented.Value(model.page),
         segmented.OnValuechange(detail =>
           Message.SetPage({
-            page: (detail.value ?? 'home') as Model['page'],
+            page: (detail.value ?? 'home') as Page,
           }),
         ),
         h.Attribute('aria-label', 'Sections'),
@@ -309,11 +243,14 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         segmentedIndicator([], []),
         segmentedItem([segmentedItem.Value('home')], ['Home']),
         segmentedItem([segmentedItem.Value('docs')], ['Docs']),
+        segmentedItem([segmentedItem.Value('showcase')], ['Showcase']),
         segmentedItem([segmentedItem.Value('agents')], ['Agents']),
         segmentedItem([segmentedItem.Value('components')], ['Components']),
       ],
     ),
   ])
+
+  // HOME
 
   const home = [
     h.section([h.Class('hero')], [
@@ -323,7 +260,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
       ]),
       h.div([h.Class('row hero-cta')], [
         pageButton('Read the docs', 'docs', true),
-        pageButton('Browse the components', 'components'),
+        pageButton('Browse the showcase', 'showcase'),
       ]),
       h.p([h.Class('meta')], [
         `UI SDK ${uiSdkVersion} · ${components.length} entries · ${totalSpecs} tags · MIT`,
@@ -340,7 +277,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     h.section([h.Class('section')], [
       h2('This site is built with it'),
       h.p([h.Class('prose-p')], [
-        'The navigation above is a ui-segmented-control, the FAQ below is a ui-accordion, the version chip in the footer is a ui-tooltip, and the agents page drives a ui-switch through the real agent bridge. The docs run on the thing they document.',
+        'The navigation above is a ui-segmented-control, the docs sidebar pages run live components, the FAQ below is a ui-accordion, the version chip in the footer is a ui-tooltip, and the agents page drives a ui-switch through the real agent bridge. The docs run on the thing they document.',
       ]),
       accordion(
         [accordion.Multiple(false)],
@@ -361,81 +298,135 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
     ]),
   ]
 
-  const docs = [
-    h.section([h.Class('section')], [
-      h2('Install'),
-      h.p([h.Class('prose-p')], [
-        'foldkit and effect are peer dependencies. Use a bundler that compiles TypeScript dependencies, like Vite — the same requirement UI SDK’s own adapters have.',
-      ]),
-      code('pnpm add foldkit-ui-sdk foldkit effect @effect/platform-browser'),
+  // DOCS — a sidebar on the left, the article on the right, the shape the
+  // Foldkit docs site uses.
+
+  const sideLink = (slug: string, title: string) =>
+    h.button(
+      [
+        h.Type('button'),
+        h.Class('side-link'),
+        ...(model.doc === slug ? [h.Attribute('aria-current', 'page')] : []),
+        h.OnClick(Message.SetDoc({ doc: slug })),
+      ],
+      [title],
+    )
+
+  const sidebar = h.aside([h.Class('docs-side')], [
+    h.nav([h.Class('side-nav')], [
+      h.span([h.Class('side-group-h')], ['Getting started']),
+      ...guides.map(guide => sideLink(guide.slug, guide.title)),
+      h.span([h.Class('side-group-h')], ['Components']),
+      ...demos.map(demo => sideLink(demo.slug, demo.title)),
+      h.button(
+        [
+          h.Type('button'),
+          h.Class('side-link side-link-index'),
+          h.OnClick(Message.SetPage({ page: 'components' })),
+        ],
+        ['All 51 components'],
+      ),
     ]),
-    h.section([h.Class('section')], [
-      h2('The shape of a binding'),
-      h.p([h.Class('prose-p')], [
-        'The namespace is the component, and every part is named the way UI SDK names it across frameworks: Root, List, Tab, Panel, Trigger, Content, Item. Each part is a CustomElementSpec; .withMessage(h) binds its events to the current Message universe.',
-      ]),
-      h.table([h.Class('table')], [
-        h.thead([], [
-          h.tr([], [
-            h.th([], ['UI SDK React / Vue / Solid']),
-            h.th([], ['This package']),
+  ])
+
+  const accordionList = (openMultiple: boolean, items: typeof faqs) =>
+    accordion(
+      [accordion.Multiple(openMultiple)],
+      items.map(item =>
+        accordionItem([accordionItem.Value(item.value)], [
+          accordionHeader(
+            [],
+            [h.h3([], [accordionTrigger([], [h.button([h.Type('button')], [item.question])])])],
+          ),
+          accordionPanel([], [item.answer]),
+        ]),
+      ),
+    )
+
+  const guideArticle = (slug: string): Html[] => {
+    if (slug === 'install') {
+      return [
+        h.h1([h.Class('page-h')], ['Install']),
+        prose(
+          'foldkit and effect are peer dependencies. Use a bundler that compiles TypeScript dependencies, like Vite — the same requirement UI SDK’s own adapters have.',
+        ),
+        code('pnpm add foldkit-ui-sdk foldkit effect @effect/platform-browser'),
+      ]
+    }
+    if (slug === 'bindings') {
+      return [
+        h.h1([h.Class('page-h')], ['The shape of a binding']),
+        prose(
+          'The namespace is the component, and every part is named the way UI SDK names it across frameworks: Root, List, Tab, Panel, Trigger, Content, Item. Each part is a CustomElementSpec; .withMessage(h) binds its events to the current Message universe.',
+        ),
+        h.table([h.Class('table')], [
+          h.thead([], [
+            h.tr([], [
+              h.th([], ['UI SDK React / Vue / Solid']),
+              h.th([], ['This package']),
+            ]),
+          ]),
+          h.tbody([], [
+            ...mappingRows.map(row =>
+              h.tr([], [
+                h.td([h.Class('mono')], [row[0]]),
+                h.td([h.Class('mono')], [row[1]]),
+              ]),
+            ),
           ]),
         ]),
-        h.tbody([], [
-          ...mappingRows.map(row =>
+        prose(
+          'Change events decode to { value, reason, source }, so reasons and analytics work the same as in the other adapters.',
+        ),
+      ]
+    }
+    if (slug === 'imports') {
+      return [
+        h.h1([h.Class('page-h')], ['Imports']),
+        prose(
+          'Imports mirror UI SDK’s entries, so a bundle only registers what it renders. The root entry registers every tag — right for prototypes, docs and examples.',
+        ),
+        h.table([h.Class('table')], [
+          h.thead([], [
+            h.tr([], [h.th([], ['Import']), h.th([], ['Registers']), h.th([], ['Use'])]),
+          ]),
+          h.tbody([], [
             h.tr([], [
-              h.td([h.Class('mono')], [row[0]]),
-              h.td([h.Class('mono')], [row[1]]),
+              h.td([h.Class('mono')], ['foldkit-ui-sdk/toggle']),
+              h.td([], ['That component’s tags']),
+              h.td([], ['Production apps']),
             ]),
+            h.tr([], [
+              h.td([h.Class('mono')], ['foldkit-ui-sdk']),
+              h.td([], ['Every tag']),
+              h.td([], ['Prototypes, docs, examples']),
+            ]),
+          ]),
+        ]),
+        prose(
+          `The full list — all ${components.length} entries with their specs — is on the Components page, generated from the same manifest as the bindings.`,
+        ),
+        pageButton('Open the component index', 'components', true),
+      ]
+    }
+    if (slug === 'goodies') {
+      return [
+        h.h1([h.Class('page-h')], ['Goodies that come with it']),
+        h.ul([h.Class('list')], [
+          ...goodies.map(([name, body]) =>
+            h.li([], [h.code([h.Class('mono')], [name]), ' — ', body]),
           ),
         ]),
-      ]),
-      h.p([h.Class('prose-p')], [
-        'Change events decode to { value, reason, source }, so reasons and analytics work the same as in the other adapters.',
-      ]),
-    ]),
-    h.section([h.Class('section')], [
-      h2('Imports'),
-      h.p([h.Class('prose-p')], [
-        'Imports mirror UI SDK’s entries, so a bundle only registers what it renders. The root entry registers every tag — right for prototypes, docs and examples.',
-      ]),
-      h.table([h.Class('table')], [
-        h.thead([], [
-          h.tr([], [h.th([], ['Import']), h.th([], ['Registers']), h.th([], ['Use'])]),
-        ]),
-        h.tbody([], [
-          h.tr([], [
-            h.td([h.Class('mono')], ['foldkit-ui-sdk/toggle']),
-            h.td([], ['That component’s tags']),
-            h.td([], ['Production apps']),
-          ]),
-          h.tr([], [
-            h.td([h.Class('mono')], ['foldkit-ui-sdk']),
-            h.td([], ['Every tag']),
-            h.td([], ['Prototypes, docs, examples']),
-          ]),
-        ]),
-      ]),
-      h.p([h.Class('prose-p')], [
-        `The full list — all ${components.length} entries with their specs — is on the Components page, generated from the same manifest as the bindings.`,
-      ]),
-      pageButton('Open the component index', 'components', true),
-    ]),
-    h.section([h.Class('section')], [
-      h2('Goodies that come with it'),
-      h.ul([h.Class('list')], [
-        ...goodies.map(([name, body]) =>
-          h.li([], [h.code([h.Class('mono')], [name]), ' — ', body]),
+      ]
+    }
+    if (slug === 'commands') {
+      return [
+        h.h1([h.Class('page-h')], ['Commands and the agent bridge']),
+        prose(
+          'Async work belongs in a Command. The agents page runs the real bridge as one: the click dispatches a Message, update returns the Command, and its Effect reports back with a Message when the Promise settles.',
         ),
-      ]),
-    ]),
-    h.section([h.Class('section')], [
-      h2('Commands and the agent bridge'),
-      h.p([h.Class('prose-p')], [
-        'Async work belongs in a Command. The agents page runs the real bridge as one: the click dispatches a Message, update returns the Command, and its Effect reports back with a Message when the Promise settles.',
-      ]),
-      code(
-        `const SnapshotAgent = Command.define('SnapshotAgent', {
+        code(
+          `const SnapshotAgent = Command.define('SnapshotAgent', {
   messages: [Message.FinishedAgentSnapshot],
   execute: () =>
     Effect.promise(() =>
@@ -445,39 +436,153 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
 
 // In update:
 ClickedAgentSnapshot: () => ({ model, commands: [SnapshotAgent()] }),`,
-      ),
-      pageButton('See it live on the agents page', 'agents'),
-    ]),
-    h.section([h.Class('section')], [
-      h2('Limits'),
-      h.p([h.Class('prose-p')], [
-        'Foldkit’s view is a pure Model -> Document function and every event dispatches a Message; UI SDK’s primitives are an external store bound to elements. The Web Components boundary is the architecture-respecting way to combine them — and it has two edges:',
-      ]),
-      accordion(
-        [accordion.Multiple(true)],
-        limits.map(limit =>
-          accordionItem([accordionItem.Value(limit.value)], [
-            accordionHeader(
-              [],
-              [h.h3([], [accordionTrigger([], [h.button([h.Type('button')], [limit.question])])])],
-            ),
-            accordionPanel([], [limit.answer]),
-          ]),
         ),
-      ),
-    ]),
-    h.section([h.Class('section')], [
-      h2('Development'),
-      code(
-        `pnpm install
+        pageButton('See it live on the agents page', 'agents'),
+      ]
+    }
+    if (slug === 'limits') {
+      return [
+        h.h1([h.Class('page-h')], ['Limits']),
+        prose(
+          'Foldkit’s view is a pure Model -> Document function and every event dispatches a Message; UI SDK’s primitives are an external store bound to elements. The Web Components boundary is the architecture-respecting way to combine them — and it has two edges:',
+        ),
+        accordionList(true, limits),
+      ]
+    }
+    if (slug === 'development') {
+      return [
+        h.h1([h.Class('page-h')], ['Development']),
+        code(
+          `pnpm install
 pnpm run generate         # regenerate src/entries from the manifest
 pnpm run check:generated  # fail when generated files are stale
 pnpm run typecheck
 pnpm test                 # every tag has a binding, events, properties
-pnpm run test:e2e         # Playwright on the examples`,
+pnpm run test:e2e         # Playwright on the site`,
+        ),
+      ]
+    }
+    // The introduction.
+    return [
+      h.h1([h.Class('page-h')], ['Introduction']),
+      prose(
+        'foldkit-ui-sdk is a binding layer, not a reimplementation. UI SDK ships its components as Web Components with keyboard, focus, selection and ARIA tested once, in @ui-sdk/core; Foldkit runs your app as a Model -> update -> view loop. The package meets them at the seam both already support: CustomElement.define.',
+      ),
+      prose(
+        'Properties flow from the Model into the element; UI SDK’s *change events come back as Messages with their detail decoded and Schema-typed. No primitive store lives in your Model, and no Foldkit state lives in the element.',
+      ),
+      ...features.map(feature =>
+        h.article([h.Class('feature')], [
+          h.h3([], [feature.title]),
+          h.p([], [feature.body]),
+        ]),
+      ),
+      h2('This site is built with it'),
+      prose(
+        'The navigation above is a ui-segmented-control, every component page runs its component live, the FAQ below is a ui-accordion, and the agents page drives a ui-switch through the real agent bridge.',
+      ),
+      accordionList(false, faqs),
+      h2('Quick start'),
+      code(quickStart),
+    ]
+  }
+
+  // A component docs page, the shape the Foldkit docs site uses: overview,
+  // a live example with its code, the parts, and the behaviors link.
+
+  const demoArticle = (slug: string): Html[] => {
+    const demo = findDemo(slug)
+    if (!demo) return guideArticle('introduction')
+
+    const entries = demo.namespaces
+      .map(namespace => componentByNamespace(namespace))
+      .filter((entry): entry is ComponentEntry => entry !== undefined)
+
+    return [
+      h.h1([h.Class('page-h')], [demo.title]),
+      h.div([h.Class('row import-row')], [
+        ...entries.map(entry =>
+          h.code([h.Class('import-chip')], [`foldkit-ui-sdk/${entry.entry}`]),
+        ),
+      ]),
+      h2('Overview'),
+      prose(demo.overview),
+      h2('Example'),
+      prose(demo.note + ' The demo below is live — the state lives in the Model behind this page.'),
+      h.div([h.Class('demo-frame')], demo.render(model, h)),
+      code(demo.code),
+      h2('Parts'),
+      h.table([h.Class('table')], [
+        h.thead([], [
+          h.tr([], [h.th([], ['Spec']), h.th([], ['Element'])]),
+        ]),
+        h.tbody([], [
+          ...entries.flatMap(entry =>
+            entry.specs.map(spec =>
+              h.tr([], [
+                h.td([h.Class('mono')], [`${entry.namespace}.${spec}`]),
+                h.td([h.Class('mono')], [`<${specTag(entry.entry, spec)}>`]),
+              ]),
+            ),
+          ),
+        ]),
+      ]),
+      prose(
+        'Keyboard interaction, focus order, dismissal and ARIA are UI SDK’s own, tested through @ui-sdk/core/testing — the bindings pass them through untouched. Read the full behavior notes in UI SDK’s docs:',
+      ),
+      h.ul([h.Class('list')], [
+        ...entries.map(entry =>
+          h.li([], [
+            h.a([h.Href(entry.docsUrl), h.Class('link'), h.Attribute('target', '_blank')], [
+              `${entry.namespace} · UI SDK docs`,
+            ]),
+          ]),
+        ),
+      ]),
+      pageButton('See it in the showcase', 'showcase'),
+    ]
+  }
+
+  const docs = h.div([h.Class('docs-layout')], [
+    sidebar,
+    h.div([h.Class('docs-main')], [
+      ...(guides.some(guide => guide.slug === model.doc)
+        ? guideArticle(model.doc)
+        : demoArticle(model.doc)),
+    ]),
+  ])
+
+  // SHOWCASE — every demo on one page, each holding its state in the Model.
+
+  const showcase = [
+    h.section([h.Class('section')], [
+      h.h1([h.Class('page-h')], ['Showcase']),
+      h.p([h.Class('prose-p')], [
+        'UI SDK’s Web Components, bound to a Foldkit app. Every control on this page holds its state in the Model behind it, through the same CustomElement.define seam the docs describe.',
+      ]),
+      h.p([h.Class('meta')], [
+        `UI SDK ${uiSdkVersion} · ${components.length} entries · click, drag and type anywhere`,
+      ]),
+    ]),
+    h.div([h.Class('grid')], [
+      ...demos.map(demo =>
+        h.section([h.Class('card')], [
+          h.h3([], [demo.title]),
+          h.p([h.Class('card-note')], [demo.note]),
+          h.div([h.Class('card-demo')], demo.render(model, h)),
+        ]),
       ),
     ]),
+    h.footer([h.Class('footer')], [
+      h.span([], ['foldkit-ui-sdk · a binding layer, not a reimplementation · ']),
+      h.a([h.Href('https://ui-sdk.dev'), h.Class('link')], ['UI SDK']),
+      h.span([], [' behaviors, ']),
+      h.a([h.Href('https://foldkit.dev'), h.Class('link')], ['Foldkit']),
+      h.span([], [' runtime']),
+    ]),
   ]
+
+  // AGENTS
 
   const agents = [
     h.section([h.Class('section')], [
@@ -546,6 +651,8 @@ registerTools(agent, {
     ]),
   ]
 
+  // COMPONENTS — the generated index of every entry.
+
   const componentsPage = [
     h.section([h.Class('section')], [
       h.h1([h.Class('page-h')], ['Components']),
@@ -583,13 +690,20 @@ registerTools(agent, {
     model.page === 'home'
       ? home
       : model.page === 'docs'
-        ? docs
-        : model.page === 'agents'
-          ? agents
-          : componentsPage
+        ? [docs]
+        : model.page === 'showcase'
+          ? showcase
+          : model.page === 'agents'
+            ? agents
+            : componentsPage
+
+  const title =
+    model.page === 'docs' && findDemo(model.doc) !== undefined
+      ? `foldkit-ui-sdk — ${findDemo(model.doc)?.title}`
+      : `foldkit-ui-sdk — ${model.page}`
 
   return {
-    title: `foldkit-ui-sdk — ${model.page}`,
+    title,
     body: h.div([], [
       nav,
       h.main([h.Class('main')], page),

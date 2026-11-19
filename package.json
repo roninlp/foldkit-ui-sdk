@@ -6,9 +6,7 @@
   "scripts": {
     "generate": "pnpm --filter foldkit-ui-sdk run generate",
     "check:generated": "pnpm --filter foldkit-ui-sdk run check:generated",
-    "dev": "pnpm --filter poc run dev",
-    "dev:showcase": "pnpm --filter showcase run dev",
-    "dev:site": "pnpm --filter site run dev",
+    "dev": "pnpm --filter site run dev",
     "build": "pnpm -r run --if-present build",
     "screenshot": "node scripts/screenshot.mjs",
     "typecheck": "pnpm -r run --if-present typecheck",
