@@ -13,7 +13,7 @@ Model and the property/event seam.
 | Tooling | `src/testing.ts`, `src/agent.ts`, `src/observe.ts`, `src/shortcuts.ts` | Re-exports of UI SDK's framework-agnostic helpers, so one package covers components, testing and agents |
 | Generator | `packages/foldkit-ui-sdk/scripts/generate.mjs` | Reads `@ui-sdk/web/custom-elements.json` and writes both layers |
 | Tests | `packages/foldkit-ui-sdk/test/` | Coverage against the same manifest; browser behavior in `tests/` |
-| Example | `examples/poc/` | A real Foldkit app using Toggle, Tabs and Popover |
+| Examples | `examples/poc`, `examples/showcase`, `examples/site` | Three Foldkit apps: the minimal test target, the sixteen-component showcase, and the marketing/docs site that runs on the bindings it documents |
 
 The package ships TypeScript source, like UI SDK's own adapters, so a consumer needs a bundler
 that compiles TypeScript dependencies. It has no build step and no bundled runtime.
@@ -59,8 +59,15 @@ import { Menu } from 'foldkit-ui-sdk'              // defines everything
 
 - `test/generated.test.ts` compares the generated specs with the manifest: every tag, every
   event, no framework-only properties, one namespace per entry, and a pinned UI SDK version.
-- `tests/poc.spec.ts` runs the example in Chromium: toggle state, tab selection and panels, a
-  popover that stays open across a Foldkit re-render, Escape, and no console errors.
+- `tests/poc.spec.ts` runs the minimal example in Chromium: toggle state, tab selection and
+  panels, a popover that stays open across a Foldkit re-render, Escape, and no console errors.
+- `tests/showcase.spec.ts` walks all sixteen showcase components the same way, one Model
+  round-trip at a time.
+- `tests/site.spec.ts` checks the docs site: navigation through a SegmentedControl, the
+  component index parsed from the generated `docs/components.md`, and the live agent bridge
+  flipping a Switch through a Foldkit Command.
+- `scripts/screenshot.mjs` recaptures `docs/screenshot.png` from the showcase; run it with
+  `pnpm run screenshot`.
 
 ## Upgrading UI SDK
 

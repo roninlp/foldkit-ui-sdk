@@ -9,7 +9,10 @@ tested through `@ui-sdk/core/testing`, plus an agent bridge in `@ui-sdk/core/age
 across 56 entries, inside a Foldkit app, with the same shape they have in React, Vue, Svelte,
 Solid and Web Components.
 
-![Tabs, a toggle and a popover rendered by UI SDK inside a Foldkit app](docs/screenshot.png)
+![Toggle, tabs, accordion, slider, rating, menu, dialog and more — UI SDK components rendered by foldkit-ui-sdk inside a Foldkit app](docs/screenshot.png)
+
+That screenshot is [examples/showcase](examples/showcase), a Foldkit app with sixteen
+live components, styled with UI SDK's own Web Components stylesheet.
 
 It does that through the seam both projects already support: UI SDK's Web Components, bound to
 Foldkit with `CustomElement.define`. Properties flow from the Model into the element; UI SDK's
@@ -125,11 +128,20 @@ pnpm run generate        # regenerate src/entries from @ui-sdk/web/custom-elemen
 pnpm run check:generated # fail if the bindings are stale
 pnpm run typecheck
 pnpm test                # every tag has a binding, events, properties, namespaces
-pnpm run test:e2e        # Playwright on examples/poc
+pnpm run test:e2e        # Playwright on the examples
+pnpm run screenshot      # recapture docs/screenshot.png from the showcase
 ```
 
-Open [examples/poc](examples/poc) with `pnpm run dev`. See [docs/architecture.md](docs/architecture.md)
-for how the generator and the binding layer fit together.
+Three example apps run with Vite:
+
+| Example | Port | What it is |
+| --- | --- | --- |
+| [examples/poc](examples/poc) | 5199 | The minimal app the browser test drives first |
+| [examples/showcase](examples/showcase) | 5198 | Sixteen components, one Model, the README screenshot (`pnpm run dev:showcase`) |
+| [examples/site](examples/site) | 5197 | The marketing and docs site — built with the bindings it documents, including a live agent-bridge demo (`pnpm run dev:site`) |
+
+See [docs/architecture.md](docs/architecture.md) for how the generator and the binding layer fit
+together.
 
 ## Credits
 

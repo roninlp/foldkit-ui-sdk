@@ -34,6 +34,10 @@ pnpm run check            # all of the above
 ## Layout
 
 - `packages/foldkit-ui-sdk`: the published package.
-- `examples/poc`: the working Foldkit app the browser test drives.
-- `tests`: Playwright specs.
-- `docs`: architecture and the generated component index.
+- `examples/poc`: the minimal Foldkit app the first browser test drives.
+- `examples/showcase`: the sixteen-component showcase, styled with UI SDK's own vendored
+  `web.css`; the source of `docs/screenshot.png` (`pnpm run screenshot`).
+- `examples/site`: the marketing and docs site, built with the bindings it documents, with the
+  agents guide and a live agent-bridge demo.
+- `tests`: Playwright specs, one per example.
+- `docs`: architecture, the generated component index, CI, and the screenshot.

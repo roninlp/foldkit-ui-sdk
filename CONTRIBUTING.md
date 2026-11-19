@@ -9,7 +9,7 @@ pnpm run check
 ```
 
 `pnpm run check` verifies the generated bindings are current, typechecks the package and the
-example, runs the manifest tests, and drives the example in Chromium.
+examples, runs the manifest tests, and drives every example in Chromium.
 
 When changing a binding, change `packages/foldkit-ui-sdk/scripts/generate.mjs` and run
 `pnpm run generate`. Never edit `src/entries/*.ts` or `src/index.ts` by hand.
