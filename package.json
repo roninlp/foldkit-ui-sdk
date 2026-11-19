@@ -1,0 +1,24 @@
+{
+  "name": "foldkit-ui-sdk-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "generate": "npm run generate --workspace foldkit-ui-sdk",
+    "check:generated": "npm run check:generated --workspace foldkit-ui-sdk",
+    "dev": "npm run dev --workspace poc",
+    "build": "npm run build --workspace poc",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace foldkit-ui-sdk",
+    "test:e2e": "playwright test",
+    "check": "npm run check:generated && npm run typecheck && npm run test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "typescript": "^5.9.0",
+    "@types/node": "^24.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+node_modules
+dist
+*.log
+.DS_Store
+playwright-report
+test-results
+apps/docs/public
+packages/foldkit-ui-sdk/LICENSE
+packages/foldkit-ui-sdk/THIRD_PARTY_NOTICES.md
+packages/foldkit-ui-sdk/LICENSES

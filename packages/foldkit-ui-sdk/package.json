@@ -1,0 +1,69 @@
+{
+  "name": "foldkit-ui-sdk",
+  "version": "0.1.0",
+  "description": "UI SDK's behaviors and components as typed Foldkit bindings.",
+  "keywords": [
+    "foldkit",
+    "ui-sdk",
+    "effect",
+    "ui",
+    "headless",
+    "unstyled",
+    "accessibility",
+    "a11y",
+    "aria",
+    "agents",
+    "web-components"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/roninlp/foldkit-ui-sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/roninlp/foldkit-ui-sdk.git",
+    "directory": "packages/foldkit-ui-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/roninlp/foldkit-ui-sdk/issues"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/entries/*.ts",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "LICENSES"
+  ],
+  "sideEffects": [
+    "./src/entries/*.ts"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "check:generated": "node scripts/generate.mjs --check",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "cp ../../LICENSE LICENSE && cp ../../THIRD_PARTY_NOTICES.md . && cp -r ../../LICENSES LICENSES"
+  },
+  "dependencies": {
+    "@ui-sdk/web": "0.1.0-beta.13"
+  },
+  "peerDependencies": {
+    "@ui-sdk/core": ">=0.1.0-beta.13 <0.2.0",
+    "effect": "^4.1.4",
+    "foldkit": ">=0.171.0 <0.172.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "effect": "^4.1.4",
+    "foldkit": "0.171.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
