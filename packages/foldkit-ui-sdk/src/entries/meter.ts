@@ -1,5 +1,5 @@
 // Generated from @ui-sdk/web/custom-elements.json by scripts/generate.mjs.
-// Do not edit. Run `npm run generate` after upgrading ui-sdk.
+// Do not edit. Run `pnpm run generate` after upgrading ui-sdk.
 import "@ui-sdk/web/meter"
 import { Schema } from "effect"
 import { CustomElement } from "foldkit"

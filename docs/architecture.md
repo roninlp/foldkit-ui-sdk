@@ -65,9 +65,9 @@ import { Menu } from 'foldkit-ui-sdk'              // defines everything
 ## Upgrading UI SDK
 
 1. Bump `@ui-sdk/web` in `packages/foldkit-ui-sdk/package.json`.
-2. `npm install`
-3. `npm run generate`
-4. `npm run check` (generated check, typecheck, unit tests, Playwright)
+2. `pnpm install`
+3. `pnpm run generate`
+4. `pnpm run check` (generated check, typecheck, unit tests, Playwright)
 
 If a new event or property gets `Schema.Unknown` and deserves a type, improve the parser or add
 an explicit mapping in `scripts/generate.mjs`; never hand-edit a generated file.

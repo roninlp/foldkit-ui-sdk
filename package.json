@@ -2,19 +2,16 @@
   "name": "foldkit-ui-sdk-workspace",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
+  "packageManager": "pnpm@12.18.0",
   "scripts": {
-    "generate": "npm run generate --workspace foldkit-ui-sdk",
-    "check:generated": "npm run check:generated --workspace foldkit-ui-sdk",
-    "dev": "npm run dev --workspace poc",
-    "build": "npm run build --workspace poc",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspace foldkit-ui-sdk",
+    "generate": "pnpm --filter foldkit-ui-sdk run generate",
+    "check:generated": "pnpm --filter foldkit-ui-sdk run check:generated",
+    "dev": "pnpm --filter poc run dev",
+    "build": "pnpm --filter poc run build",
+    "typecheck": "pnpm -r run --if-present typecheck",
+    "test": "pnpm --filter foldkit-ui-sdk run test",
     "test:e2e": "playwright test",
-    "check": "npm run check:generated && npm run typecheck && npm run test && npm run test:e2e"
+    "check": "pnpm run check:generated && pnpm run typecheck && pnpm run test && pnpm run test:e2e"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

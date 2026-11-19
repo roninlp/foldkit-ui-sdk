@@ -19,7 +19,7 @@ state lives in the element.
 ## Install
 
 ```bash
-npm install foldkit-ui-sdk foldkit effect @effect/platform-browser
+pnpm add foldkit-ui-sdk foldkit effect @effect/platform-browser
 ```
 
 `foldkit` and `effect` are peer dependencies. Use a bundler that compiles TypeScript
@@ -120,15 +120,15 @@ Two limits follow from that boundary:
 ## Development
 
 ```bash
-npm install
-npm run generate        # regenerate src/entries from @ui-sdk/web/custom-elements.json
-npm run check:generated # fail if the bindings are stale
-npm run typecheck
-npm test                # every tag has a binding, events, properties, namespaces
-npm run test:e2e        # Playwright on examples/poc
+pnpm install
+pnpm run generate        # regenerate src/entries from @ui-sdk/web/custom-elements.json
+pnpm run check:generated # fail if the bindings are stale
+pnpm run typecheck
+pnpm test                # every tag has a binding, events, properties, namespaces
+pnpm run test:e2e        # Playwright on examples/poc
 ```
 
-Open [examples/poc](examples/poc) with `npm run dev`. See [docs/architecture.md](docs/architecture.md)
+Open [examples/poc](examples/poc) with `pnpm run dev`. See [docs/architecture.md](docs/architecture.md)
 for how the generator and the binding layer fit together.
 
 ## Credits

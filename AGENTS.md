@@ -6,13 +6,13 @@ Typed Foldkit bindings for UI SDK's Web Components. Read `README.md` and
 ## Commands
 
 ```bash
-npm install
-npm run generate         # rewrite src/entries and src/index.ts from the manifest
-npm run check:generated  # fail when generated files are stale
-npm run typecheck
-npm test                 # unit tests against the manifest
-npm run test:e2e         # Playwright against examples/poc
-npm run check            # all of the above
+pnpm install
+pnpm run generate         # rewrite src/entries and src/index.ts from the manifest
+pnpm run check:generated  # fail when generated files are stale
+pnpm run typecheck
+pnpm test                 # unit tests against the manifest
+pnpm run test:e2e         # Playwright against examples/poc
+pnpm run check            # all of the above
 ```
 
 ## Rules

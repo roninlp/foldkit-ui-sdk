@@ -1,5 +1,5 @@
 // Generated from @ui-sdk/web/custom-elements.json by scripts/generate.mjs.
-// Do not edit. Run `npm run generate` after upgrading ui-sdk.
+// Do not edit. Run `pnpm run generate` after upgrading ui-sdk.
 //
 // Importing the root registers every UI SDK element. Use a component subpath
 // (`foldkit-ui-sdk/menu`) to register only what a view renders.

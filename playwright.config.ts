@@ -6,7 +6,7 @@ export default defineConfig({
     baseURL: 'http://localhost:5199',
   },
   webServer: {
-    command: 'npm run dev --workspace poc',
+    command: 'pnpm --filter poc run dev',
     url: 'http://localhost:5199',
     reuseExistingServer: !process.env.CI,
   },

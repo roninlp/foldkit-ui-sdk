@@ -12,7 +12,7 @@
     "@effect/platform-browser": "^4.1.4",
     "effect": "^4.1.4",
     "foldkit": "0.171.0",
-    "foldkit-ui-sdk": "*"
+    "foldkit-ui-sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

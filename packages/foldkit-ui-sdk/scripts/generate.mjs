@@ -270,7 +270,7 @@ for (const { entry, declarations } of modules) {
     path.join(entriesDir, `${entry}.ts`),
     [
       '// Generated from @ui-sdk/web/custom-elements.json by scripts/generate.mjs.',
-      '// Do not edit. Run `npm run generate` after upgrading ui-sdk.',
+      '// Do not edit. Run `pnpm run generate` after upgrading ui-sdk.',
       `import "@ui-sdk/web/${entry}"`,
       'import { Schema } from "effect"',
       'import { CustomElement } from "foldkit"',
@@ -288,7 +288,7 @@ output.set(
   path.join(sourceDir, 'index.ts'),
   [
     '// Generated from @ui-sdk/web/custom-elements.json by scripts/generate.mjs.',
-    '// Do not edit. Run `npm run generate` after upgrading ui-sdk.',
+    '// Do not edit. Run `pnpm run generate` after upgrading ui-sdk.',
     '//',
     '// Importing the root registers every UI SDK element. Use a component subpath',
     '// (`foldkit-ui-sdk/menu`) to register only what a view renders.',
@@ -335,7 +335,7 @@ for (const [file, content] of output) {
 
 if (check) {
   if (stale) {
-    console.error('Generated bindings are stale. Run `npm run generate`.')
+    console.error('Generated bindings are stale. Run `pnpm run generate`.')
     process.exitCode = 1
   } else {
     console.log(`Generated bindings are current (${seen.size} tags, ${modules.length} entries).`)

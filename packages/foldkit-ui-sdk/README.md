@@ -3,7 +3,7 @@
 Typed Foldkit bindings for [UI SDK](https://ui-sdk.dev)'s Web Components.
 
 ```bash
-npm install foldkit-ui-sdk foldkit effect @effect/platform-browser
+pnpm add foldkit-ui-sdk foldkit effect @effect/platform-browser
 ```
 
 ```ts
