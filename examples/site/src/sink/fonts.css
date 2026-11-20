@@ -1,0 +1,41 @@
+/* Geist, the typeface the reference sink is drawn in. The files come from the
+ * `geist` package (SIL OFL) and live in public/fonts. */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Serif';
+  src: url('/fonts/GeistSerif-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Pixel Square';
+  src: url('/fonts/GeistPixel-Square.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-geist: 'Geist';
+  --font-geist-mono: 'Geist Mono';
+  --font-geist-serif-regular: 'Geist Serif';
+  --font-geist-pixel-square: 'Geist Pixel Square';
+}

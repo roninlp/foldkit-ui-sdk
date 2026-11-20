@@ -11,6 +11,7 @@ import { Accordion, SegmentedControl, Switch, Tooltip, uiSdkVersion } from 'fold
 import componentsMarkdown from '../../../docs/components.md?raw'
 
 import { demos, findDemo } from './demos'
+import { renderSink } from './sink/view'
 
 // Re-exported for entry.ts, which starts the runtime.
 export { Message, Model, init, update } from './model'
@@ -244,6 +245,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
         segmentedItem([segmentedItem.Value('home')], ['Home']),
         segmentedItem([segmentedItem.Value('docs')], ['Docs']),
         segmentedItem([segmentedItem.Value('showcase')], ['Showcase']),
+        segmentedItem([segmentedItem.Value('sink')], ['Sink']),
         segmentedItem([segmentedItem.Value('agents')], ['Agents']),
         segmentedItem([segmentedItem.Value('components')], ['Components']),
       ],
@@ -540,6 +542,10 @@ pnpm run test:e2e         # Playwright on the site`,
         ),
       ]),
       pageButton('See it in the showcase', 'showcase'),
+      h.a(
+        [h.Href(`/?uses=${demo.namespaces[0] ?? ''}`), h.Class('btn')],
+        ['Open it in the Sink'],
+      ),
     ]
   }
 
@@ -693,9 +699,11 @@ registerTools(agent, {
         ? [docs]
         : model.page === 'showcase'
           ? showcase
-          : model.page === 'agents'
-            ? agents
-            : componentsPage
+          : model.page === 'sink'
+            ? renderSink(model, h)
+            : model.page === 'agents'
+              ? agents
+              : componentsPage
 
   const title =
     model.page === 'docs' && findDemo(model.doc) !== undefined
@@ -706,7 +714,7 @@ registerTools(agent, {
     title,
     body: h.div([], [
       nav,
-      h.main([h.Class('main')], page),
+      h.main([h.Class(model.page === 'sink' ? 'main main-sink' : 'main')], page),
       h.footer([h.Class('site-footer')], [
         h.span([], ['A binding layer, not a reimplementation. ']),
         h.a([h.Href('https://github.com/foldkit/foldkit-ui-sdk'), h.Class('link')], ['Source']),

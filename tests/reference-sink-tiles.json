@@ -1,0 +1,1017 @@
+[
+  {
+    "id": "forms-alerts",
+    "size": "tall",
+    "tone": "white",
+    "title": "Choose your alerts.",
+    "blurb": "One parent box checks its whole group."
+  },
+  {
+    "id": "overlays-region",
+    "size": "s",
+    "tone": "sky",
+    "title": "Open from code.",
+    "blurb": "Await the region someone picks."
+  },
+  {
+    "id": "collections-book-contents",
+    "size": "s",
+    "tone": "paper",
+    "title": "Contents, flattened.",
+    "blurb": "Nested chapters rendered as flat rows."
+  },
+  {
+    "id": "language-sheet",
+    "size": "wide",
+    "tone": "white",
+    "title": "Copy a block.",
+    "blurb": "Shift-select cells, paste back as rows."
+  },
+  {
+    "id": "reference-switches",
+    "size": "s",
+    "tone": "white",
+    "title": "Stay connected.",
+    "blurb": "Switches that slide and submit."
+  },
+  {
+    "id": "forms-checkout",
+    "size": "large",
+    "tone": "white",
+    "title": "Pay for the trip.",
+    "blurb": "Every field checks itself before you pay."
+  },
+  {
+    "id": "overlays-palette",
+    "size": "large",
+    "tone": "white",
+    "title": "Jump anywhere.",
+    "blurb": "Search commands, then drill into pages."
+  },
+  {
+    "id": "collections-now-playing",
+    "size": "large",
+    "tone": "white",
+    "title": "Now playing.",
+    "blurb": "Tabs over three lists, with live progress."
+  },
+  {
+    "id": "motion-canvas",
+    "size": "large",
+    "tone": "blueprint",
+    "title": "Wire the flow.",
+    "blurb": "Pan, zoom, move nodes, connect ports."
+  },
+  {
+    "id": "language-city-search",
+    "size": "large",
+    "tone": "white",
+    "title": "Find any city.",
+    "blurb": "Ranked as you type, matches marked, accents ignored."
+  },
+  {
+    "id": "drag-sidebar",
+    "size": "large",
+    "tone": "white",
+    "title": "Fold the sidebar.",
+    "blurb": "Drag below its minimum and it eases shut."
+  },
+  {
+    "id": "studio-map",
+    "size": "large",
+    "tone": "white",
+    "title": "Fit the whole city.",
+    "blurb": "Zoom to fit all, or just your picks."
+  },
+  {
+    "id": "reference-storage",
+    "size": "s",
+    "tone": "butter",
+    "title": "Know your quota.",
+    "blurb": "A meter, not a progress bar."
+  },
+  {
+    "id": "forms-cabin",
+    "size": "s",
+    "tone": "white",
+    "title": "Choose your cabin.",
+    "blurb": "Whole cards select, arrows included."
+  },
+  {
+    "id": "overlays-invite",
+    "size": "s",
+    "tone": "paper",
+    "title": "Bring people in.",
+    "blurb": "A dialog that waits while it sends."
+  },
+  {
+    "id": "collections-ten-thousand",
+    "size": "tall",
+    "tone": "paper",
+    "title": "Ten thousand tracks.",
+    "blurb": "Only the rows in view render."
+  },
+  {
+    "id": "motion-layers",
+    "size": "s",
+    "tone": "white",
+    "title": "Rank the layers.",
+    "blurb": "Drag a row, or pick it up with Space."
+  },
+  {
+    "id": "language-typeahead",
+    "size": "s",
+    "tone": "paper",
+    "title": "Type to jump.",
+    "blurb": "Letters find the currency."
+  },
+  {
+    "id": "drag-toasts",
+    "size": "tall",
+    "tone": "sky",
+    "title": "Swipe a toast away.",
+    "blurb": "Past a third, letting go dismisses it."
+  },
+  {
+    "id": "studio-notes",
+    "size": "s",
+    "tone": "paper",
+    "title": "Take it back.",
+    "blurb": "Typing undoes in runs, not letters."
+  },
+  {
+    "id": "reference-volume",
+    "size": "s",
+    "tone": "ink",
+    "title": "Turn it up.",
+    "blurb": "Drag, click or use the arrows."
+  },
+  {
+    "id": "forms-verify",
+    "size": "s",
+    "tone": "sky",
+    "title": "Prove it’s you.",
+    "blurb": "Paste or type; it checks itself."
+  },
+  {
+    "id": "overlays-delete",
+    "size": "s",
+    "tone": "white",
+    "title": "Think twice.",
+    "blurb": "Confirm before anything gets deleted."
+  },
+  {
+    "id": "collections-music-folder",
+    "size": "wide",
+    "tone": "white",
+    "title": "Your music folder.",
+    "blurb": "A file tree built from plain paths."
+  },
+  {
+    "id": "motion-throw",
+    "size": "s",
+    "tone": "signal",
+    "title": "Throw it.",
+    "blurb": "Flick to skip, or let it spring back."
+  },
+  {
+    "id": "language-number-format",
+    "size": "s",
+    "tone": "white",
+    "title": "Pick a format.",
+    "blurb": "Arrows move, Tab leaves the group."
+  },
+  {
+    "id": "drag-tabs",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Reorder the tabs.",
+    "blurb": "Each slot snaps the tab in as it nears."
+  },
+  {
+    "id": "studio-trash",
+    "size": "s",
+    "tone": "white",
+    "title": "Press twice.",
+    "blurb": "It arms first, then disarms itself."
+  },
+  {
+    "id": "reference-format",
+    "size": "s",
+    "tone": "paper",
+    "title": "One tab stop.",
+    "blurb": "Two toggle groups inside a toolbar."
+  },
+  {
+    "id": "forms-flight-search",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Plan the route.",
+    "blurb": "Type a city or a code to find airports."
+  },
+  {
+    "id": "overlays-tokens",
+    "size": "s",
+    "tone": "paper",
+    "title": "Ask, then await.",
+    "blurb": "One confirm call answers every row."
+  },
+  {
+    "id": "collections-offline-sync",
+    "size": "s",
+    "tone": "sage",
+    "title": "Pick what syncs.",
+    "blurb": "Mixed when partly checked."
+  },
+  {
+    "id": "motion-board",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Plan the week.",
+    "blurb": "Drag cards across columns, or use the arrows."
+  },
+  {
+    "id": "language-seats",
+    "size": "tall",
+    "tone": "blueprint",
+    "title": "Choose a seat.",
+    "blurb": "A keyboard grid that skips taken seats."
+  },
+  {
+    "id": "drag-timeline",
+    "size": "wide",
+    "tone": "ink",
+    "title": "Scrub to the chorus.",
+    "blurb": "The playhead snaps to each section."
+  },
+  {
+    "id": "studio-timer",
+    "size": "s",
+    "tone": "ink",
+    "title": "Run it from outside.",
+    "blurb": "Buttons drive it through a controller."
+  },
+  {
+    "id": "motion-stickies",
+    "size": "s",
+    "tone": "butter",
+    "title": "Stick it anywhere.",
+    "blurb": "Drag notes, or nudge with Alt and arrows."
+  },
+  {
+    "id": "drag-band",
+    "size": "s",
+    "tone": "signal",
+    "title": "Pull past the end.",
+    "blurb": "It resists, then springs home."
+  },
+  {
+    "id": "studio-week",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Block out the week.",
+    "blurb": "Draw, move and stretch across days."
+  },
+  {
+    "id": "forms-new-password",
+    "size": "s",
+    "tone": "paper",
+    "title": "Make it strong.",
+    "blurb": "Rules tick off as you type."
+  },
+  {
+    "id": "overlays-build-log",
+    "size": "s",
+    "tone": "ink",
+    "title": "Pull up the log.",
+    "blurb": "Drag the sheet between two heights."
+  },
+  {
+    "id": "collections-seasons",
+    "size": "s",
+    "tone": "white",
+    "title": "Season by season.",
+    "blurb": "One season open at a time."
+  },
+  {
+    "id": "motion-day",
+    "size": "tall",
+    "tone": "sky",
+    "title": "Stack the day.",
+    "blurb": "Overlapping events share the width."
+  },
+  {
+    "id": "language-stay",
+    "size": "wide",
+    "tone": "sky",
+    "title": "Book the stay.",
+    "blurb": "A two-month range with a live night count."
+  },
+  {
+    "id": "drag-patch",
+    "size": "s",
+    "tone": "paper",
+    "title": "Patch a cable.",
+    "blurb": "Drag from a source into a channel."
+  },
+  {
+    "id": "studio-chat",
+    "size": "tall",
+    "tone": "sky",
+    "title": "Follow the thread.",
+    "blurb": "Scroll up and new replies wait."
+  },
+  {
+    "id": "forms-nights",
+    "size": "s",
+    "tone": "butter",
+    "title": "Stay a little longer.",
+    "blurb": "A stepper that clamps to your stay."
+  },
+  {
+    "id": "overlays-schedule",
+    "size": "s",
+    "tone": "white",
+    "title": "Pick a time.",
+    "blurb": "A small form that points at its button."
+  },
+  {
+    "id": "collections-credits",
+    "size": "s",
+    "tone": "butter",
+    "title": "Read the credits.",
+    "blurb": "Liner notes fold away; initials stand in."
+  },
+  {
+    "id": "motion-palette",
+    "size": "s",
+    "tone": "paper",
+    "title": "Move a handful.",
+    "blurb": "Select a few swatches, then drag one."
+  },
+  {
+    "id": "language-departure",
+    "size": "s",
+    "tone": "white",
+    "title": "Type or pick.",
+    "blurb": "Swiss date order, calendar on demand."
+  },
+  {
+    "id": "drag-lasso",
+    "size": "s",
+    "tone": "white",
+    "title": "Lasso a few photos.",
+    "blurb": "Locked ones stay out; Shift adds more."
+  },
+  {
+    "id": "studio-emoji",
+    "size": "s",
+    "tone": "butter",
+    "title": "React in a word.",
+    "blurb": "Fuzzy search, then arrows through the grid."
+  },
+  {
+    "id": "forms-fare-range",
+    "size": "s",
+    "tone": "ink",
+    "title": "Set a price window.",
+    "blurb": "Two thumbs frame the fares you want."
+  },
+  {
+    "id": "overlays-review",
+    "size": "s",
+    "tone": "blueprint",
+    "title": "Review by keyboard.",
+    "blurb": "Tooltips teach the keys that work."
+  },
+  {
+    "id": "collections-backlog",
+    "size": "s",
+    "tone": "white",
+    "title": "Queue a backlog.",
+    "blurb": "Selection holds across every page."
+  },
+  {
+    "id": "motion-frame",
+    "size": "s",
+    "tone": "blueprint",
+    "title": "Size the frame.",
+    "blurb": "Eight handles, plus the arrow keys."
+  },
+  {
+    "id": "language-parse-date",
+    "size": "s",
+    "tone": "paper",
+    "title": "Same digits, new date.",
+    "blurb": "Each locale reads its own order."
+  },
+  {
+    "id": "drag-windows",
+    "size": "s",
+    "tone": "sage",
+    "title": "Resize the windows.",
+    "blurb": "Grab any edge or corner."
+  },
+  {
+    "id": "studio-film",
+    "size": "wide",
+    "tone": "white",
+    "title": "A year on one strip.",
+    "blurb": "Only the frames in view exist."
+  },
+  {
+    "id": "forms-seat-map",
+    "size": "wide",
+    "tone": "white",
+    "title": "Pick a seat.",
+    "blurb": "Arrow through the cabin, press to choose."
+  },
+  {
+    "id": "overlays-quick-keys",
+    "size": "s",
+    "tone": "signal",
+    "title": "Keys for your machine.",
+    "blurb": "⌘ on a Mac, Ctrl everywhere else."
+  },
+  {
+    "id": "collections-lyrics",
+    "size": "s",
+    "tone": "ink",
+    "title": "Scroll the lyrics.",
+    "blurb": "Custom thumb, fades at both edges."
+  },
+  {
+    "id": "motion-swipe",
+    "size": "s",
+    "tone": "white",
+    "title": "Swipe it away.",
+    "blurb": "Archive and delete wait behind each row."
+  },
+  {
+    "id": "language-weeks",
+    "size": "s",
+    "tone": "sage",
+    "title": "Weeks start elsewhere.",
+    "blurb": "One month, three local grids."
+  },
+  {
+    "id": "studio-slide",
+    "size": "s",
+    "tone": "blueprint",
+    "title": "Move them together.",
+    "blurb": "Shift-click to group, then drag one."
+  },
+  {
+    "id": "forms-requests",
+    "size": "s",
+    "tone": "white",
+    "title": "Note for the hotel.",
+    "blurb": "Grows with your text and counts it."
+  },
+  {
+    "id": "overlays-mention",
+    "size": "s",
+    "tone": "white",
+    "title": "Know who’s who.",
+    "blurb": "Pause on a mention to meet them."
+  },
+  {
+    "id": "collections-new-releases",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Fresh this Friday.",
+    "blurb": "Swipe, use the arrow keys or the buttons."
+  },
+  {
+    "id": "motion-color",
+    "size": "s",
+    "tone": "ink",
+    "title": "Pick a shade.",
+    "blurb": "Saturation across, brightness up."
+  },
+  {
+    "id": "language-nights",
+    "size": "s",
+    "tone": "signal",
+    "title": "Count the days.",
+    "blurb": "A stepper primitive doing date math."
+  },
+  {
+    "id": "forms-passport",
+    "size": "s",
+    "tone": "white",
+    "title": "Add your passport.",
+    "blurb": "Drop a scan or browse for one."
+  },
+  {
+    "id": "overlays-deploys",
+    "size": "wide",
+    "tone": "white",
+    "title": "Every row, its actions.",
+    "blurb": "Menus with submenus, named by tooltips."
+  },
+  {
+    "id": "collections-folder-import",
+    "size": "s",
+    "tone": "blueprint",
+    "title": "Import in progress.",
+    "blurb": "Known sizes fill; unknown ones pulse."
+  },
+  {
+    "id": "motion-timeline",
+    "size": "wide",
+    "tone": "white",
+    "title": "Book the studio.",
+    "blurb": "Draw, move and stretch bookings."
+  },
+  {
+    "id": "language-rating",
+    "size": "s",
+    "tone": "butter",
+    "title": "Rate the ryokan.",
+    "blurb": "Stars built from scratch."
+  },
+  {
+    "id": "forms-amenities",
+    "size": "s",
+    "tone": "sage",
+    "title": "Must-haves only.",
+    "blurb": "Pick several; the trigger sums them up."
+  },
+  {
+    "id": "overlays-file-tree",
+    "size": "s",
+    "tone": "paper",
+    "title": "Right-click works.",
+    "blurb": "A context menu that knows the file."
+  },
+  {
+    "id": "collections-reading-goal",
+    "size": "s",
+    "tone": "signal",
+    "title": "Reading goal.",
+    "blurb": "A meter drawn as a ring."
+  },
+  {
+    "id": "motion-outline",
+    "size": "s",
+    "tone": "white",
+    "title": "Nest a layer.",
+    "blurb": "Drag sideways to change its depth."
+  },
+  {
+    "id": "language-map",
+    "size": "s",
+    "tone": "paper",
+    "title": "Arrows follow the map.",
+    "blurb": "The nearest city that way wins."
+  },
+  {
+    "id": "forms-save-hotel",
+    "size": "s",
+    "tone": "paper",
+    "title": "Save it for later.",
+    "blurb": "A pressed state that stays put."
+  },
+  {
+    "id": "overlays-branch",
+    "size": "s",
+    "tone": "sage",
+    "title": "Menu, then dialog.",
+    "blurb": "Rename opens a dialog from the menu."
+  },
+  {
+    "id": "collections-club-note",
+    "size": "s",
+    "tone": "sky",
+    "title": "Tag the club.",
+    "blurb": "Type @ to mention a reader."
+  },
+  {
+    "id": "motion-tags",
+    "size": "s",
+    "tone": "white",
+    "title": "Tag the card.",
+    "blurb": "Drop a label onto the task."
+  },
+  {
+    "id": "language-keyboard",
+    "size": "s",
+    "tone": "ink",
+    "title": "Keys by position.",
+    "blurb": "Up from B lands where it looks."
+  },
+  {
+    "id": "forms-ticket-name",
+    "size": "s",
+    "tone": "white",
+    "title": "Match your passport.",
+    "blurb": "Reset brings back the saved name."
+  },
+  {
+    "id": "overlays-menubar",
+    "size": "wide",
+    "tone": "paper",
+    "title": "A real menu bar.",
+    "blurb": "Arrow across menus, toggle the view."
+  },
+  {
+    "id": "collections-chapter-prompt",
+    "size": "s",
+    "tone": "white",
+    "title": "Ask about chapters.",
+    "blurb": "Chapters drop in as tokens."
+  },
+  {
+    "id": "motion-theme",
+    "size": "s",
+    "tone": "paper",
+    "title": "Try before choosing.",
+    "blurb": "Hover a color to preview it."
+  },
+  {
+    "id": "language-stops",
+    "size": "s",
+    "tone": "white",
+    "title": "Delete, stay put.",
+    "blurb": "Focus lands on the next stop."
+  },
+  {
+    "id": "forms-promo",
+    "size": "s",
+    "tone": "blueprint",
+    "title": "Apply a promo code.",
+    "blurb": "Bad codes explain themselves inline."
+  },
+  {
+    "id": "overlays-sidebar",
+    "size": "tall",
+    "tone": "white",
+    "title": "Navigate the workspace.",
+    "blurb": "Sections open panels beside the sidebar."
+  },
+  {
+    "id": "collections-book-search",
+    "size": "s",
+    "tone": "white",
+    "title": "Search the stacks.",
+    "blurb": "Results load as you type."
+  },
+  {
+    "id": "motion-lasso",
+    "size": "s",
+    "tone": "white",
+    "title": "Lasso the pins.",
+    "blurb": "Drag a box, or Shift-click to add."
+  },
+  {
+    "id": "language-words",
+    "size": "s",
+    "tone": "paper",
+    "title": "Focus follows.",
+    "blurb": "Move a word, keep your place."
+  },
+  {
+    "id": "forms-auto-check-in",
+    "size": "s",
+    "tone": "signal",
+    "title": "Check in on time.",
+    "blurb": "Flip it by tap, label or Space."
+  },
+  {
+    "id": "overlays-inbox",
+    "size": "s",
+    "tone": "butter",
+    "title": "Undo anything.",
+    "blurb": "Archived notices stack up with Undo."
+  },
+  {
+    "id": "collections-playlist-genres",
+    "size": "s",
+    "tone": "paper",
+    "title": "Tag a playlist.",
+    "blurb": "Each genre you pick becomes a chip."
+  },
+  {
+    "id": "motion-dates",
+    "size": "s",
+    "tone": "paper",
+    "title": "Drop on a date.",
+    "blurb": "Hold near the edge to scroll."
+  },
+  {
+    "id": "language-shortcuts",
+    "size": "s",
+    "tone": "white",
+    "title": "Shortcuts per platform.",
+    "blurb": "⌘ on a Mac, Ctrl elsewhere."
+  },
+  {
+    "id": "forms-room-type",
+    "size": "s",
+    "tone": "paper",
+    "title": "Choose a room.",
+    "blurb": "Prices ride along in the list."
+  },
+  {
+    "id": "overlays-presence",
+    "size": "s",
+    "tone": "white",
+    "title": "Roll your own.",
+    "blurb": "A status popup from core popup parts."
+  },
+  {
+    "id": "collections-sync-log",
+    "size": "s",
+    "tone": "ink",
+    "title": "Follows the tail.",
+    "blurb": "New lines stay in view until you scroll."
+  },
+  {
+    "id": "motion-pull",
+    "size": "s",
+    "tone": "white",
+    "title": "Pull to refresh.",
+    "blurb": "The list resists the farther you pull."
+  },
+  {
+    "id": "language-announce",
+    "size": "s",
+    "tone": "ink",
+    "title": "Heard, not seen.",
+    "blurb": "What a screen reader is told."
+  },
+  {
+    "id": "forms-bags",
+    "size": "s",
+    "tone": "white",
+    "title": "Add checked bags.",
+    "blurb": "Extras price themselves as you count."
+  },
+  {
+    "id": "overlays-line-comments",
+    "size": "s",
+    "tone": "paper",
+    "title": "Pin it to a line.",
+    "blurb": "Placed and dismissed without a component."
+  },
+  {
+    "id": "collections-rename",
+    "size": "s",
+    "tone": "paper",
+    "title": "Rename in place.",
+    "blurb": "Enter saves, Escape puts it back."
+  },
+  {
+    "id": "motion-radial",
+    "size": "s",
+    "tone": "sage",
+    "title": "Pick by direction.",
+    "blurb": "Press the pin, swipe toward an action."
+  },
+  {
+    "id": "language-phrasebook",
+    "size": "s",
+    "tone": "paper",
+    "title": "Read right to left.",
+    "blurb": "Arrows follow each language's direction."
+  },
+  {
+    "id": "forms-payment-method",
+    "size": "s",
+    "tone": "paper",
+    "title": "Pick how to pay.",
+    "blurb": "Skipping a required choice gets flagged."
+  },
+  {
+    "id": "overlays-assignee",
+    "size": "s",
+    "tone": "ink",
+    "title": "Assign in a keystroke.",
+    "blurb": "Type a name, press Enter."
+  },
+  {
+    "id": "collections-hidden-passage",
+    "size": "s",
+    "tone": "white",
+    "title": "Found when searched.",
+    "blurb": "Find in page opens the hidden passage."
+  },
+  {
+    "id": "motion-split",
+    "size": "s",
+    "tone": "paper",
+    "title": "Split the workspace.",
+    "blurb": "Drag the dividers between panels."
+  },
+  {
+    "id": "language-scheme",
+    "size": "s",
+    "tone": "white",
+    "title": "Light, dark or auto.",
+    "blurb": "One tile's scheme, remembered here."
+  },
+  {
+    "id": "forms-airlines",
+    "size": "s",
+    "tone": "white",
+    "title": "Fly who you like.",
+    "blurb": "Type to add airlines as chips."
+  },
+  {
+    "id": "overlays-theme",
+    "size": "large",
+    "tone": "paper",
+    "title": "Light, dark or system.",
+    "blurb": "Themes its preview, and remembers after a reload."
+  },
+  {
+    "id": "collections-release-history",
+    "size": "wide",
+    "tone": "paper",
+    "title": "Scrub the release history.",
+    "blurb": "Arrow keys or a drag move through every version."
+  },
+  {
+    "id": "motion-hold",
+    "size": "s",
+    "tone": "paper",
+    "title": "Hold to delete.",
+    "blurb": "Let go early and nothing happens."
+  },
+  {
+    "id": "language-amount",
+    "size": "s",
+    "tone": "white",
+    "title": "Type 1.234,5 in German.",
+    "blurb": "Each locale reads its own separators."
+  },
+  {
+    "id": "forms-brand-color",
+    "size": "large",
+    "tone": "white",
+    "title": "Pick the brand color.",
+    "blurb": "Drag, paste a hex or tap a preset; the site follows."
+  },
+  {
+    "id": "overlays-split",
+    "size": "s",
+    "tone": "white",
+    "title": "The split remembers.",
+    "blurb": "Drag it, reload, and it stays put."
+  },
+  {
+    "id": "collections-request-waterfall",
+    "size": "large",
+    "tone": "white",
+    "title": "Read the request waterfall.",
+    "blurb": "Every request on one clock, with the ones it started tucked inside."
+  },
+  {
+    "id": "motion-sheet",
+    "size": "tall",
+    "tone": "sky",
+    "title": "Pull the sheet up.",
+    "blurb": "Three resting heights; a flick can skip one."
+  },
+  {
+    "id": "language-price",
+    "size": "s",
+    "tone": "butter",
+    "title": "Big dollars, small cents.",
+    "blurb": "A price styled from its parts."
+  },
+  {
+    "id": "forms-contrast",
+    "size": "tall",
+    "tone": "paper",
+    "title": "Will it pass AA?",
+    "blurb": "Any CSS color in, a WCAG ratio out."
+  },
+  {
+    "id": "overlays-player",
+    "size": "s",
+    "tone": "ink",
+    "title": "Plays under a modal.",
+    "blurb": "The player stays live above the dialog."
+  },
+  {
+    "id": "collections-invoice-pages",
+    "size": "tall",
+    "tone": "sky",
+    "title": "Page 4 of 212.",
+    "blurb": "The page list keeps its length, so nothing shifts under the pointer."
+  },
+  {
+    "id": "motion-guests",
+    "size": "s",
+    "tone": "butter",
+    "title": "Add guests quickly.",
+    "blurb": "Hold a button and the count speeds up."
+  },
+  {
+    "id": "language-hours",
+    "size": "s",
+    "tone": "ink",
+    "title": "Snap to a quarter.",
+    "blurb": "A dial on the step grid, by drag or arrows."
+  },
+  {
+    "id": "forms-avatar-crop",
+    "size": "wide",
+    "tone": "ink",
+    "title": "Frame your avatar.",
+    "blurb": "Drag to pan, scroll to zoom, then save."
+  },
+  {
+    "id": "overlays-discard",
+    "size": "s",
+    "tone": "butter",
+    "title": "Discard changes?",
+    "blurb": "Escape asks first. Save and Cancel don’t."
+  },
+  {
+    "id": "collections-board-history",
+    "size": "large",
+    "tone": "butter",
+    "title": "Undo 'Moved card to Done'.",
+    "blurb": "Every change in words, from you or an agent, one step back at a time."
+  },
+  {
+    "id": "motion-wheel",
+    "size": "s",
+    "tone": "ink",
+    "title": "Spin to the hour.",
+    "blurb": "Flick a wheel, or use the arrow keys."
+  },
+  {
+    "id": "language-ranges",
+    "size": "tall",
+    "tone": "sage",
+    "title": "This week, next month.",
+    "blurb": "Quick ranges that start where the locale's week does."
+  },
+  {
+    "id": "forms-pickup-time",
+    "size": "s",
+    "tone": "sky",
+    "title": "Set the pickup time.",
+    "blurb": "Type or arrow through each part."
+  },
+  {
+    "id": "overlays-receipt",
+    "size": "tall",
+    "tone": "white",
+    "title": "Expand the receipt.",
+    "blurb": "Each panel animates to its own height."
+  },
+  {
+    "id": "collections-command-recall",
+    "size": "s",
+    "tone": "ink",
+    "title": "Recall the last command.",
+    "blurb": "Arrow up brings it back, and leaves an IME alone."
+  },
+  {
+    "id": "motion-mentions",
+    "size": "wide",
+    "tone": "white",
+    "title": "Tap opens, hover previews.",
+    "blurb": "Mentions adapt to a mouse, a finger or the keys."
+  },
+  {
+    "id": "language-recipients",
+    "size": "wide",
+    "tone": "sky",
+    "title": "Paste a list of emails.",
+    "blurb": "A codec turns pasted text into tokens."
+  },
+  {
+    "id": "forms-stay-rating",
+    "size": "s",
+    "tone": "butter",
+    "title": "Rate your stay.",
+    "blurb": "Half stars by pointer or arrow keys."
+  },
+  {
+    "id": "overlays-stack",
+    "size": "wide",
+    "tone": "sky",
+    "title": "Escape closes the top.",
+    "blurb": "Stacked layers close from the top down."
+  },
+  {
+    "id": "collections-activity-feed",
+    "size": "tall",
+    "tone": "sage",
+    "title": "Watch what changed.",
+    "blurb": "One stream of every change, who made it and how."
+  },
+  {
+    "id": "language-agent",
+    "size": "large",
+    "tone": "white",
+    "title": "Let the agent fill it.",
+    "blurb": "A scripted agent reads the form and acts through its api."
+  }
+]

@@ -13,7 +13,7 @@ Model and the property/event seam.
 | Tooling | `src/testing.ts`, `src/agent.ts`, `src/observe.ts`, `src/shortcuts.ts` | Re-exports of UI SDK's framework-agnostic helpers, so one package covers components, testing and agents |
 | Generator | `packages/foldkit-ui-sdk/scripts/generate.mjs` | Reads `@ui-sdk/web/custom-elements.json` and writes both layers |
 | Tests | `packages/foldkit-ui-sdk/test/` | Coverage against the same manifest; browser behavior in `tests/` |
-| Examples | `examples/site` | One Foldkit app: the marketing site, per-component docs pages that run their component live, the sixteen-demo showcase, and the agents demo |
+| Examples | `examples/site` | One Foldkit app: the marketing site, per-component docs pages that run their component live, the sixteen-demo showcase, the 145-tile Sink, and the agents demo |
 
 The package ships TypeScript source, like UI SDK's own adapters, so a consumer needs a bundler
 that compiles TypeScript dependencies. It has no build step and no bundled runtime.
@@ -61,10 +61,11 @@ import { Menu } from 'foldkit-ui-sdk'              // defines everything
   event, no framework-only properties, one namespace per entry, and a pinned UI SDK version.
 - `tests/site.spec.ts` drives the site in Chromium: navigation through a SegmentedControl,
   the docs sidebar and its per-component pages (each running its demo live), all sixteen
-  showcase components one Model round-trip at a time, the component index parsed from the
-  generated `docs/components.md`, the live agent bridge flipping a Switch through a Foldkit
-  Command, and the light color-scheme pin that keeps component text readable under a
-  dark-mode OS.
+  showcase components one Model round-trip at a time, the Sink's 145 tiles and its
+  `?only=` / `?uses=` / `mode=all` filter, the component index parsed from the generated
+  `docs/components.md`, the live agent bridge flipping a Switch through a Foldkit Command,
+  and the light color-scheme pin that keeps component text readable under a dark-mode OS.
+  [docs/sink.md](sink.md) records what the Sink's composition surfaced.
 - `scripts/screenshot.mjs` recaptures `docs/screenshot.png` from the site's showcase page;
   run it with `pnpm run screenshot`.
 
@@ -88,3 +89,15 @@ an explicit mapping in `scripts/generate.mjs`; never hand-edit a generated file.
 - **Attributes without properties**: a few part attributes (`for`, `as-child`) have no
   JavaScript property. Keep parts inside their root, or render the tag through Foldkit's
   `h.customElement()` and set the attribute yourself.
+- **Template-cloned parts**: Foldkit's `h.template` writes children into the template element,
+  not `HTMLTemplateElement.content`. Calendar, DatePicker, Pagination, Rating, FileInput and
+  Toast clone their template's content, so use `h.template([h.InnerHTML(markup)])` until Foldkit
+  supports content. [docs/sink.md](sink.md) has the failures and the workaround.
+- **`Schema.Unknown` is not "anything goes"**: a complex property still needs the element's
+  runtime shape. `TokenInput.value` is a segment array, not the attribute string the docs show;
+  `items` on Listbox, Combobox, Command and Waterfall is an alternate rendering path, not an
+  addition to item markup. Both are recorded in [docs/sink.md](sink.md).
+- **Web Components carry a default theme**: the React adapters are unstyled, so the ported
+  reference sink needs `sink/compat.css` and `sink/class-bridge.ts` to remove the few UI SDK
+  defaults (calendar card, carousel max-width, listbox chrome) and to put a wrapper's classes on
+  its inner control. None of that touches the Model or a binding's behavior.

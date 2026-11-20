@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { expect, test } from '@playwright/test'
 
 // The site is the one example app, built with the bindings it documents: the
@@ -7,6 +9,18 @@ import { expect, test } from '@playwright/test'
 // runs the real agent bridge through a Foldkit Command.
 
 test.use({ baseURL: 'http://localhost:5197' })
+
+// The reference sink's 145 tiles, captured from ui-sdk.dev/sink. The port must
+// match this list exactly: ids, order, sizes, tones and copy.
+const referenceTiles: ReadonlyArray<{
+  id: string
+  size: string
+  tone: string
+  title: string
+  blurb: string
+}> = JSON.parse(
+  readFileSync(new URL('./reference-sink-tiles.json', import.meta.url), 'utf8'),
+)
 
 const watchConsole = (page: import('@playwright/test').Page) => {
   const errors: string[] = []
@@ -55,6 +69,10 @@ test('the docs pages run the component they document, from a sidebar', async ({ 
   await expect(page.locator('.demo-frame')).toBeVisible()
   await expect(page.locator('.docs-main .code')).toContainText('foldkit-ui-sdk/dialog')
   await expect(page.locator('.docs-main .table')).toContainText('<ui-dialog-content>')
+  await expect(page.locator('.docs-main a', { hasText: 'Open it in the Sink' })).toHaveAttribute(
+    'href',
+    '/?uses=Dialog',
+  )
 
   // The demo on the docs page is live and holds its state in the Model.
   const demo = page.locator('.demo-frame')
@@ -182,6 +200,147 @@ test('the showcase components hold their state in the Foldkit Model', async ({ p
   // Field and input — typing round-trips through the Model.
   await page.locator('.card [data-slot="input"]').fill('grace')
   await expect(page.locator('.card', { hasText: 'Field and input' })).toContainText('Hello, grace.')
+
+  expect(errors).toEqual([])
+})
+
+// The sink is a 1:1 port of the reference bento: 145 composed tiles, tones
+// and sizes, and a floating filter made of the component names a tile uses.
+
+test('the sink renders the reference bento and filters by component names', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  await page.goto('/?only=reference')
+  await expect(page.locator('.sink .bento')).toBeVisible()
+  await expect(page.locator('.tile')).toHaveCount(4)
+  await expect(page.locator('#reference-storage')).toHaveAttribute('data-tone', 'butter')
+  await expect(page.locator('#reference-volume')).toHaveAttribute('data-tone', 'ink')
+  await expect(page.locator('#reference-format')).toHaveAttribute('data-tone', 'paper')
+  await expect(page.locator('.tile-error')).toHaveCount(0)
+  await expect(page.locator('.filter')).not.toHaveAttribute('data-open', '')
+
+  // A component name on a tile narrows the grid and opens the floating filter.
+  await page.locator('#reference-switches .tile-use').filter({ hasText: 'Switch' }).click()
+  await expect(page).toHaveURL(url => url.searchParams.get('only') === 'reference' && url.searchParams.get('uses') === 'Switch')
+  await expect(page.locator('.tile:visible')).toHaveCount(1)
+  await expect(page.locator('.filter')).toHaveAttribute('data-open', '')
+  await expect(page.locator('.filter-count')).toHaveText('1 tile')
+
+  // No visible tile here uses both names, so a second name comes from a URL.
+  await page.goto('/?only=reference&uses=Switch,Meter')
+  await expect(page.locator('.tile:visible')).toHaveCount(2)
+  await expect(page.locator('.filter-mode')).toBeVisible()
+  await page.locator('.filter-mode button', { hasText: 'All' }).click()
+  await expect(page).toHaveURL(/mode=all/)
+  await expect(page.locator('.tile:visible')).toHaveCount(0)
+  await expect(page.locator('.bento-empty')).toBeVisible()
+
+  await page.goto('/?only=reference&uses=Switch')
+  await page.locator('.filter-clear').click()
+  await expect(page).toHaveURL(url => url.searchParams.get('only') === 'reference' && !url.searchParams.has('uses'))
+  await expect(page.locator('.tile:visible')).toHaveCount(4)
+  await expect(page.locator('.filter')).not.toHaveAttribute('data-open', '')
+
+  // A ?uses link boots straight into the sink.
+  await page.goto('/?only=reference&uses=Slider')
+  await expect(page.locator('.tile:visible')).toHaveCount(1)
+  await expect(page.locator('.tile:visible')).toHaveId('reference-volume')
+
+  expect(errors).toEqual([])
+})
+
+test('the sink matches the reference tile list exactly', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  await page.goto('/')
+  await page
+    .locator('[data-slot="segmented-control-item"]')
+    .filter({ hasText: 'Sink' })
+    .click()
+
+  await expect(page.locator('.tile')).toHaveCount(referenceTiles.length)
+  const actual = await page.locator('.tile').evaluateAll(tiles =>
+    tiles.map(tile => {
+      const strong = tile.querySelector('.tile-title strong')
+      const full = tile.querySelector('.tile-title')
+      const title = strong?.textContent ?? ''
+      return {
+        id: tile.id,
+        size: tile.getAttribute('data-size') ?? 's',
+        tone: tile.getAttribute('data-tone') ?? 'white',
+        title,
+        blurb: full ? full.textContent.replace(title, '').trim() : '',
+      }
+    }),
+  )
+  expect(actual).toEqual(referenceTiles)
+  await expect(page.locator('.tile-error')).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
+
+test('the reference tiles round-trip their state through the Foldkit Model', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  await page.goto('/?only=reference')
+
+  // Volume: the slider value is state, and the readout follows it.
+  const volume = page.locator('#reference-volume')
+  await volume.locator('[data-slot="slider-thumb"] input').focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(volume).toContainText('65%')
+
+  // Formatting: two toggle groups, both Model lists.
+  const format = page.locator('#reference-format')
+  await format.locator('.ref-tool[aria-label="Italic"]').click()
+  await expect(format.locator('.ref-sample')).toHaveCSS('font-style', 'italic')
+  await format.locator('.ref-tool[aria-label="Align center"]').click()
+  await expect(format.locator('.ref-sample')).toHaveCSS('text-align', 'center')
+
+  // Switches: the first starts checked and toggles off.
+  const wifi = page.locator('#reference-switches ui-switch').first()
+  await expect(wifi).toHaveAttribute('data-checked', '')
+  await wifi.click()
+  await expect(wifi).not.toHaveAttribute('data-checked', '')
+
+  expect(errors).toEqual([])
+})
+
+test('the sink keeps the reference behaviors across groups', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  // A parent checkbox checks its whole group.
+  await page.goto('/?only=forms-alerts')
+  await page.locator('#forms-alerts .fm-al-parent').first().click()
+  await expect(page.locator('#forms-alerts .fm-al-count').first()).toHaveText('4 of 4')
+  await expect(page.locator('#forms-alerts .fm-al-row ui-checkbox[data-checked]')).toHaveCount(4)
+
+  // A color preset repaints the mock site.
+  await page.goto('/?only=forms-brand-color')
+  await page.locator('#forms-brand-color ui-color-picker-swatch-item').nth(3).click()
+  await expect(page.locator('#forms-brand-color .pk-site')).toHaveAttribute(
+    'style',
+    /--pk-brand: #30a46c/,
+  )
+
+  // A meter-backed goal moves with its button.
+  await page.goto('/?only=collections-reading-goal')
+  await page.locator('#collections-reading-goal .cl-goal-actions button').nth(1).click()
+  await expect(page.locator('#collections-reading-goal .cl-ring-num')).toHaveText('35')
+  await expect(page.locator('#collections-reading-goal .cl-goal-left')).toHaveText('17 to go')
+
+  // The scroll picker follows the arrow keys.
+  await page.goto('/?only=motion-wheel')
+  await page.locator('#motion-wheel .gs-wheel').first().click()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.locator('#motion-wheel .gs-alarm-head')).toContainText('8:30 AM')
+
+  // The scripted agent runs through the real bridge.
+  await page.goto('/?only=language-agent')
+  await page.locator('#language-agent button', { hasText: 'Run' }).click()
+  await expect(page.locator('#language-agent .lc-agent-log')).toContainText('snapshot()', {
+    timeout: 5000,
+  })
 
   expect(errors).toEqual([])
 })

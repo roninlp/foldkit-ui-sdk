@@ -325,3 +325,19 @@ body {
   color: var(--muted);
   cursor: help;
 }
+
+/* The sink is a full-bleed bento page on the reference's paper canvas. */
+
+.main-sink { max-width: none; padding: 0; }
+
+body:has(.sink) {
+  background: oklch(0.968 0.008 85);
+}
+body:has(.sink) .topbar {
+  background: rgba(247, 246, 242, 0.92);
+  border-bottom-color: oklch(0.89 0.012 80);
+}
+body:has(.sink) .site-footer {
+  max-width: 1480px;
+  border-top-color: oklch(0.89 0.012 80);
+}

@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@effect/platform-browser": "^4.1.4",
+    "@phosphor-icons/web": "^2.1.2",
+    "@ui-sdk/core": "0.1.0-beta.13",
+    "@ui-sdk/web": "0.1.0-beta.13",
     "effect": "^4.1.4",
     "foldkit": "0.171.0",
     "foldkit-ui-sdk": "workspace:*"

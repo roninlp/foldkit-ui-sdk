@@ -1,0 +1,93 @@
+/*
+ * The reference sink's React parts are unstyled until a tile's CSS says
+ * otherwise. The Web Component versions bring UI SDK's default theme along.
+ * These are the few places where that default chrome overrides a ported tile
+ * rule instead of being replaced by one. Loaded after the tile stylesheets.
+ */
+
+/* Calendars in the reference are plain grids; the white card is UI SDK chrome. */
+.sink ui-calendar {
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* The reference slider row is horizontal; UI SDK's root defaults to column. */
+.sink .ref-slider {
+  flex-direction: row;
+}
+
+/* The reading goal draws its own ring and size; UI SDK gives the meter a
+   fixed minimum width that clips the composition. */
+.sink .cl-ring {
+  width: 100px;
+  min-width: 0;
+  max-width: 100px;
+  height: 100px;
+}
+
+/* Scroll areas in the reference are just scrolling regions; the border is
+   UI SDK chrome. */
+.sink ui-scroll-area {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* The cropper is a row: viewport on the left, controls on the right. */
+.sink .pk-cropper {
+  flex-direction: row;
+}
+
+/* The timeline uses the control as a canvas; UI SDK's track and thumb paint
+   an opaque white rail and column over the waveform. */
+.sink .dg-tl-track-rail {
+  background: transparent;
+}
+.sink .dg-tl-head-thumb {
+  background: transparent;
+}
+
+/* The wheel is a transparent scroll picker over the tile's dark surface. */
+.sink .gs-wheel {
+  background: transparent;
+  border: 0;
+}
+
+/* The timeline art fills the control's grid cell; UI SDK centers it at its
+   content height, which collapses the waveform. */
+.sink .dg-tl-art {
+  height: 100%;
+}
+
+/* The stage's implicit track sizes to the widest demo, which pushes wide
+   demos (carousels, film strips) outside the tile. Pin it to the tile width. */
+.sink .tile-stage {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sink .cl-carousel {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+}
+.sink .cl-carousel-viewport {
+  width: 100%;
+}
+
+.sink .lc-agent-roles {
+  flex-direction: row;
+}
+
+/* Listboxes in the reference are unstyled lists; the card/border is the
+   demo's own. */
+.sink ui-listbox {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}

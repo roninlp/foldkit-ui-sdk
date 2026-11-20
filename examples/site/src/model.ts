@@ -10,8 +10,23 @@ import { agent } from './bridge'
 // MODEL — one Model for the whole site: the page and the docs article being
 // read, the agents demo, and every field the live component demos hold.
 
-export const pages = ['home', 'docs', 'showcase', 'agents', 'components'] as const
+export const pages = ['home', 'docs', 'showcase', 'sink', 'agents', 'components'] as const
 export type Page = (typeof pages)[number]
+
+export const sinkModes = ['any', 'all'] as const
+export type SinkMode = (typeof sinkModes)[number]
+
+// The sink holds 145 live tiles. Giving every tile its own Model field would
+// make this struct 145 fields long and lose the point of the exercise, so the
+// sink keys one unknown-valued record by tile and each tile narrows its own
+// slice. Every value still lives in the Model, and every change is a Message.
+export const SinkState = Schema.Struct({
+  uses: Schema.Array(Schema.String),
+  mode: Schema.Literals([...sinkModes]),
+  only: Schema.Array(Schema.String),
+  tiles: Schema.Record(Schema.String, Schema.Unknown),
+})
+export type SinkState = typeof SinkState.Type
 
 export const Model = Schema.Struct({
   page: Schema.Literals([...pages]),
@@ -37,6 +52,9 @@ export const Model = Schema.Struct({
   role: Schema.NullOr(Schema.String),
   username: Schema.String,
   lastAction: Schema.NullOr(Schema.String),
+  // The sink: every component on one page, with its state and the filter
+  // that narrows the grid by the components a tile uses.
+  sink: SinkState,
 })
 export type Model = typeof Model.Type
 
@@ -69,6 +87,13 @@ export const Message = defineMessageUnion({
   SelectedMenuAction: { action: Schema.String },
   ChangedRole: { value: Schema.NullOr(Schema.String) },
   ChangedUsername: { value: Schema.String },
+  // The sink: its shareable filter and each tile's own state slice.
+  SinkToggleUse: { name: Schema.String, pressed: Schema.Boolean },
+  SinkModeSet: { mode: Schema.Literals([...sinkModes]) },
+  SinkClearUses: {},
+  SinkTileStateSet: { tileId: Schema.String, state: Schema.Unknown },
+  SinkUrlSynced: {},
+  SinkDone: {},
 })
 export type Message = typeof Message.Type
 
@@ -106,6 +131,30 @@ const ActAgent = Command.define('ActAgent', {
         : `The agent could not run the step: ${result.error?.message ?? 'unknown error'}`,
     })
   }),
+})
+
+// The sink's filter is shareable: `?only=forms-plan-picker`, `?uses=Dialog`,
+// `?mode=all`. update returns this Command when the filter changes, and its
+// Effect writes the address bar without touching the Model.
+const SyncSinkUrl = Command.define('SyncSinkUrl', {
+  args: {
+    uses: Schema.Array(Schema.String),
+    mode: Schema.Literals([...sinkModes]),
+    only: Schema.Array(Schema.String),
+  },
+  messages: [Message.SinkUrlSynced],
+  execute: ({ uses, mode, only }) =>
+    Effect.sync(() => {
+      const url = new URL(location.href)
+      if (uses.length > 0) url.searchParams.set('uses', uses.join(','))
+      else url.searchParams.delete('uses')
+      if (mode === 'all') url.searchParams.set('mode', 'all')
+      else url.searchParams.delete('mode')
+      if (only.length > 0) url.searchParams.set('only', only.join(','))
+      else url.searchParams.delete('only')
+      history.replaceState(history.state, '', url)
+      return Message.SinkUrlSynced()
+    }),
 })
 
 // UPDATE
@@ -197,13 +246,76 @@ export const update = (model: Model, message: Message) =>
     ChangedUsername: ({ value }) => ({
       model: modifyFields(model, { username: () => value }),
     }),
+    // The sink: store a value, and sync the shareable filter into the URL.
+    SinkToggleUse: ({ name, pressed }) => {
+      const uses = pressed
+        ? [...new Set([...model.sink.uses, name])]
+        : model.sink.uses.filter(other => other !== name)
+      return {
+        model: modifyFields(model, { sink: sink => ({ ...sink, uses }) }),
+        commands: [
+          SyncSinkUrl({ uses, mode: model.sink.mode, only: model.sink.only }),
+        ],
+      }
+    },
+    SinkModeSet: ({ mode }) => ({
+      model: modifyFields(model, { sink: sink => ({ ...sink, mode }) }),
+      commands: [
+        SyncSinkUrl({ uses: model.sink.uses, mode, only: model.sink.only }),
+      ],
+    }),
+    SinkClearUses: () => ({
+      model: modifyFields(model, {
+        sink: sink => ({ ...sink, uses: [], mode: 'any' }),
+      }),
+      commands: [
+        SyncSinkUrl({ uses: [], mode: 'any', only: model.sink.only }),
+      ],
+    }),
+    SinkTileStateSet: ({ tileId, state }) => ({
+      model: modifyFields(model, {
+        sink: sink => ({ ...sink, tiles: { ...sink.tiles, [tileId]: state } }),
+      }),
+    }),
+    SinkUrlSynced: () => ({ model }),
+    SinkDone: () => ({ model }),
   })
 
 // INIT
 
+// The filter is read from the URL once, at boot. The site is a client-only
+// Vite app, so the address bar is available; the guard keeps a test or a
+// server render from crashing.
+const initialSinkFilter = () => {
+  if (typeof location === 'undefined') {
+    return { uses: [] as ReadonlyArray<string>, mode: 'any' as const, only: [] as ReadonlyArray<string> }
+  }
+  const params = new URLSearchParams(location.search)
+  const list = (key: string) =>
+    (params.get(key) ?? '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean)
+  return {
+    uses: list('uses'),
+    mode: params.get('mode') === 'all' ? ('all' as const) : ('any' as const),
+    only: list('only'),
+  }
+}
+
+// A shared `?only=` / `?uses=` link is a Sink link, so booting with one opens
+// the Sink directly instead of landing on Home with a latent filter.
+const initialPage = (): Page => {
+  if (typeof location === 'undefined') return 'home'
+  const params = new URLSearchParams(location.search)
+  return params.has('only') || params.has('uses') || params.has('mode')
+    ? 'sink'
+    : 'home'
+}
+
 export const init: Runtime.ApplicationInit<Model, Message> = () => ({
   model: {
-    page: 'home',
+    page: initialPage(),
     doc: 'introduction',
     notifications: false,
     agentLog: 'Run one of the two steps above.',
@@ -225,5 +337,9 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
     role: null,
     username: 'ada',
     lastAction: null,
+    sink: {
+      ...initialSinkFilter(),
+      tiles: {},
+    },
   },
 })
