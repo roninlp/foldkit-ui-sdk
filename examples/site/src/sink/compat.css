@@ -5,6 +5,71 @@
  * rule instead of being replaced by one. Loaded after the tile stylesheets.
  */
 
+/* The port moves switch thumbs with `translate`; UI SDK also gives the checked
+   thumb an auto inline-start margin, so it gets shifted twice and hangs off the
+   end of the track. Keep the port's placement only. */
+.sink [data-slot="switch-thumb"][data-checked] {
+  margin-inline-start: 0;
+}
+
+/* The port draws tree carets with its own icon. UI SDK also paints a pseudo
+   chevron inside the indicator and rotates it -90deg while collapsed, which
+   leaves every row with two arrows, one of them pointing the wrong way. */
+.sink :is(.cl-ftree-caret, .cl-toc-caret) {
+  --ui-icon-size: 0px;
+}
+
+.sink :is(.cl-ftree-caret, .cl-toc-caret):not([data-expanded]) {
+  rotate: none;
+}
+
+/* The port draws icons with the Phosphor font; UI SDK also paints its own
+   masked icon into a part that holds no <svg>, so the two double up. Wherever
+   the port's icon is inside a part, the default one steps aside — hidden
+   entirely, because a zero-sized pseudo would still claim a flex gap or a
+   grid row and knock the port's icon off center. (The rating star is drawn by
+   its own rule and is handled below.) */
+.sink [data-slot]:has([class*='ph-']) {
+  --ui-icon-size: 0px;
+}
+
+.sink :is(
+    [data-slot="select-trigger"],
+    [data-slot="combobox-trigger"],
+    [data-slot="navigation-menu-trigger"],
+    [data-slot="accordion-trigger"],
+    [data-slot="collapsible-trigger"]
+  ):has([class*='ph-'])::after,
+  .sink :is(
+    [data-slot="checkbox-indicator"],
+    [data-slot="select-item-indicator"],
+    [data-slot="combobox-item-indicator"],
+    [data-slot="listbox-item-indicator"],
+    [data-slot="menu-item-indicator"],
+    [data-slot="number-input-decrement"],
+    [data-slot="number-input-increment"],
+    [data-slot="calendar-previous"],
+    [data-slot="calendar-next"],
+    [data-slot="carousel-previous"],
+    [data-slot="carousel-next"],
+    [data-slot="pagination-previous"],
+    [data-slot="pagination-next"],
+    [data-slot="tree-indicator"],
+    [data-slot="password-input-toggle"],
+    [data-slot="date-picker-trigger"],
+    [data-slot="date-picker-clear"],
+    [data-slot="color-picker-eye-dropper"],
+    [data-slot="file-input-item-remove"],
+    [data-slot="token-input-token-remove"],
+    [data-slot="toast-close"],
+    [data-slot="otp-input-separator"]
+  ):has([class*='ph-'])::before,
+  .sink :where(
+    [data-slot='menu-content']
+  ) [data-slot='menu-trigger']:has([class*='ph-'])::after {
+  display: none;
+}
+
 /* Calendars in the reference are plain grids; the white card is UI SDK chrome. */
 .sink ui-calendar {
   width: auto;
@@ -90,4 +155,259 @@
   padding: 0;
   border: 0;
   background: transparent;
+}
+
+/*
+ * The reference's React icons render as <svg>; the port's Phosphor font icons
+ * render as <i>, so the copied `svg` selectors in the tile stylesheets never
+ * match them. The rules the sink relies on — rotations, flips, the odd
+ * margin, the colors a state paints an icon with — are restated here for the
+ * port's icons, in the order their files list them.
+ */
+
+.sink .dg-side-item [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+}
+.sink .dg-side-item[data-active] [class*='ph-'] {
+  color: oklch(0.55 0.11 215);
+}
+
+.sink .dg-tab [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+}
+.sink .dg-tab[aria-selected='true'] [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .dg-tabs-path [class*='ph-'] {
+  flex: none;
+  color: var(--tile-accent);
+}
+
+.sink .dg-win-title [class*='ph-'] {
+  flex: none;
+  color: oklch(0.5 0.02 160);
+}
+
+.sink .cl-sync-caret [class*='ph-'] {
+  transition: rotate 160ms var(--ease-out);
+}
+.sink .cl-sync-caret[aria-expanded='true'] [class*='ph-'] {
+  rotate: 90deg;
+}
+
+.sink .cl-credits-trigger [class*='ph-'] {
+  transition: rotate 200ms var(--ease-out);
+}
+.sink .cl-credits-trigger[data-open] [class*='ph-'] {
+  rotate: 180deg;
+}
+
+.sink .cl-lyrics-head [class*='ph-'] {
+  flex: none;
+  color: var(--tile-accent);
+}
+
+.sink .cl-token > [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .fm-trigger [class*='ph-'],
+.sink .fm-am-trigger [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+  transition: rotate 160ms var(--ease-out);
+}
+.sink .fm-trigger[data-open] [class*='ph-'],
+.sink .fm-am-trigger[data-open] [class*='ph-'] {
+  rotate: 180deg;
+}
+
+.sink .fm-pay-route [class*='ph-'] {
+  color: var(--tile-ink-3);
+}
+
+.sink .fm-ap [class*='ph-'] {
+  flex: none;
+}
+@media (max-width: 540px) {
+  .sink .fm-ap > [class*='ph-'] {
+    display: none;
+  }
+}
+
+.sink .fm-pw-rules li[data-met] [class*='ph-'] {
+  color: oklch(0.55 0.13 150);
+}
+
+.sink .fm-heart[data-pressed] [class*='ph-'] {
+  animation: fm-pop 240ms var(--ease-out);
+}
+
+.sink .fm-promo-result[data-applied] [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .gs-sheet-rating [class*='ph-'] {
+  color: oklch(0.75 0.15 80);
+}
+
+.sink .lg-cal-nav:dir(rtl) [class*='ph-'] {
+  rotate: 180deg;
+}
+
+.sink .ly-swatch [class*='ph-'] {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.sink .ly-swatch[aria-pressed='true'] [class*='ph-'] {
+  opacity: 1;
+}
+
+.sink .ly-app-nav [class*='ph-'] {
+  flex: none;
+}
+.sink .ly-app-nav[data-current] [class*='ph-'] {
+  color: var(--app-accent);
+}
+
+.sink .ly-note-trigger [class*='ph-'] {
+  flex: none;
+  margin-top: 3px;
+}
+
+.sink .mo-chip [class*='ph-'] {
+  color: var(--tile-ink-3);
+}
+
+.sink .mo-event-chip [class*='ph-'] {
+  flex: none;
+  margin-top: 1px;
+  color: var(--tile-ink-3);
+}
+
+.sink .mo-day-head [class*='ph-'] {
+  align-self: center;
+  color: var(--tile-accent);
+}
+
+.sink .mo-pin [class*='ph-'] {
+  rotate: 45deg;
+}
+
+.sink .mo-pull-indicator [class*='ph-'] {
+  rotate: calc(var(--pull-progress, 0) * 270deg);
+}
+.sink .mo-pull-indicator[data-phase='refreshing'] [class*='ph-'] {
+  animation: mo-spin 700ms linear infinite;
+}
+
+.sink .mo-split-layers [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+}
+
+.sink .ov-cmd-done [class*='ph-'] {
+  flex: none;
+  color: oklch(0.6 0.15 150);
+}
+.sink .ov-cmd-done[data-busy] [class*='ph-'] {
+  display: none;
+}
+
+.sink .ov-release-tag [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .ov-card-row [class*='ph-'] {
+  color: var(--tile-ink-3);
+}
+
+.sink .ov-deploy-branch [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+}
+
+.sink .ov-tree-row [class*='ph-'] {
+  color: var(--tile-ink-3);
+}
+.sink .ov-tree-row:not([data-closed]) [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .ov-branch-pr [class*='ph-'] {
+  color: var(--tile-ink-3);
+}
+
+.sink .ov-presence-trigger [class*='ph-'] {
+  margin-inline-start: auto;
+  color: var(--tile-ink-3);
+}
+
+.sink .rc-wf-caret [class*='ph-'] {
+  transition: rotate 160ms var(--ease-out);
+}
+.sink .rc-wf-caret[data-expanded] [class*='ph-'] {
+  rotate: 90deg;
+}
+.sink .rc-wf-caret:dir(rtl) [class*='ph-'] {
+  scale: -1 1;
+}
+
+.sink .rc-page:dir(rtl) [class*='ph-'],
+.sink .rc-icon-btn:dir(rtl) [class*='ph-'] {
+  scale: -1 1;
+}
+
+.sink .pk-pickup-place [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .st-trash-files [class*='ph-'] {
+  flex: none;
+  color: var(--tile-ink-3);
+}
+
+.sink .st-timer-top [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+.sink .st-map-world > [class*='ph-'] {
+  pointer-events: none;
+}
+
+.sink .st-map-title [class*='ph-'] {
+  color: var(--tile-accent);
+}
+
+/* The reference's ratings pass their own star icons; UI SDK beta also paints a
+   masked star of its own, which doubles the port's clipped pair. The port
+   draws the star pair at the size the reference asked its icons for. */
+.sink .pk-star::before,
+.sink .lg-rate-star::before {
+  content: none;
+}
+.sink .pk-star {
+  width: 28px;
+  height: 28px;
+}
+.sink .pk-rating[data-small] .pk-star {
+  width: 16px;
+  height: 16px;
+}
+
+/* UI SDK's command paints its own card, with light-mode colors baked in; the
+   assign popup is the reference's own .b-pop surface, so the command turns
+   into a plain region of it. */
+.sink .ov-assign-pop [data-slot='command'] {
+  width: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--tile-ink);
+}
+.sink .ov-assign-pop [data-slot='command-item'][data-highlighted] {
+  background: color-mix(in oklab, var(--tile-ink) 8%, transparent);
 }

@@ -33,10 +33,12 @@ const icon = (
   name: string,
   weight: 'regular' | 'fill' | 'bold' = 'regular',
   size = 16,
+  extraClass?: string,
 ) =>
   h.i(
     [
       h.Class(`ph${weight === 'regular' ? '' : `-${weight}`} ph-${name}`),
+      ...(extraClass ? [h.Class(extraClass)] : []),
       h.Style({ fontSize: `${size}px` }),
       h.Attribute('aria-hidden', 'true'),
     ],
@@ -1000,7 +1002,7 @@ const Receipts = ({ state, set, h }: TileContext<ReceiptState>) => {
             h.span([h.Class('ly-order-total')], [
               money(subtotal + tax),
             ]),
-            icon(h, 'caret-down', 'bold', 14),
+            icon(h, 'caret-down', 'bold', 14, 'ly-order-caret'),
           ],
         ),
         h.div(

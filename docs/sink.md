@@ -95,7 +95,7 @@ Every approximation is marked `// PORT NOTE` in its tile file. The larger ones a
 
 | Area | Approximation |
 | --- | --- |
-| Canvas, week and slide editors | Pan/zoom and drag/move handled with native pointer listeners; a few keyboard-only affordances (the canvas `C` connector key, full drag-resize) are reduced |
+| Canvas, week and slide editors | Pan/zoom and drag/move handled with native pointer listeners; a few keyboard-only affordances (the canvas `C` connector key) are reduced |
 | Board / outline | Drop lands at the end of the hovered column; tree depth snaps instead of free nesting |
 | Virtualized film / ten-thousand tracks | A windowed range replaces `createVirtualizer`; the overscan and centering match |
 | History / activity | A Model-owned log replaces the React history controller; replayed entries are synthesized |

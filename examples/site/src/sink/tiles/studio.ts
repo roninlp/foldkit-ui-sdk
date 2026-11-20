@@ -1,3 +1,4 @@
+import { bindDrag, dragThreshold } from '@ui-sdk/core'
 import { Effect, Option, Stream } from 'effect'
 import type { Attribute, HtmlBuilder } from 'foldkit/html'
 import type { MountAction } from 'foldkit/mount'
@@ -1356,8 +1357,12 @@ let weekRoot: HTMLElement | null = null
 let weekState: WeekState | null = null
 let weekMade = 0
 let weekDraw: { track: string; start: number } | null = null
+let weekSpanStop: (() => void) | undefined
 
 const snap = (value: number, step = 15) => Math.round(value / step) * step
+
+const W_MIN = 30
+const W_MAX = 240
 
 const valueAt = (track: string, clientY: number) => {
   const element = weekRoot?.querySelector<HTMLElement>(
@@ -1370,11 +1375,25 @@ const valueAt = (track: string, clientY: number) => {
   return Math.max(W_START, Math.min(W_END, snap(raw)))
 }
 
+/** The visible day column a pointer is closest to, as `createSpans.trackAt` finds it. */
+const weekTrackAt = (x: number) => {
+  let best: { key: string; distance: number } | undefined
+  weekRoot?.querySelectorAll<HTMLElement>('[data-week-track]').forEach(track => {
+    const rect = track.getBoundingClientRect()
+    const distance = x < rect.left ? rect.left - x : x > rect.right ? x - rect.right : 0
+    if (!best || distance < best.distance) {
+      best = { key: track.dataset.weekTrack ?? '', distance }
+    }
+  })
+  return best?.key
+}
+
 type WeekState = {
   plans: ReadonlyArray<Plan>
   draft: { track: string; start: number; end: number } | null
   hover: { track: string; at: number } | null
   days: number
+  dragging: { id: string; action: 'move' | 'resize' } | null
 }
 
 const week = {
@@ -1383,6 +1402,7 @@ const week = {
     draft: null,
     hover: null,
     days: 5,
+    dragging: null,
   } as WeekState,
   render: ({ state, set, h }: TileContext<WeekState>) => {
     weekState = state
@@ -1431,8 +1451,79 @@ const week = {
             const down = (event: PointerEvent) => {
               const track = trackAt(event.target)
               if (!track || !weekState) return
-              if ((event.target as Element | null)?.closest?.('[data-span-id]')) return
               const key = track.dataset.weekTrack ?? ''
+              const spanEl = (event.target as Element | null)?.closest?.(
+                '[data-span-id]',
+              ) as HTMLElement | null
+              if (spanEl) {
+                // PORT NOTE: the reference moves a span from its body and
+                // resizes it from its `data-span-edge` handles through
+                // createSpans. The same geometry runs here on bindDrag: the
+                // grabbed minute offset is kept, a move snaps to the nearest
+                // day column, and a resize keeps the far end fixed with a
+                // 30-minute minimum and the 4-hour maximum.
+                const id = spanEl.dataset.spanId ?? ''
+                const plan = weekState.plans.find(item => item.id === id)
+                if (!plan) return
+                const edge =
+                  (event.target as Element | null)?.closest?.(
+                    '[data-span-edge]',
+                  )?.getAttribute('data-span-edge') ?? ''
+                const action: 'move' | 'resize' =
+                  edge === 'start' || edge === 'end' ? 'resize' : 'move'
+                const grabbed = valueAt(plan.track, event.clientY) - plan.start
+                weekSpanStop?.()
+                const stop = bindDrag(element, event, {
+                  threshold: dragThreshold,
+                  cancelOnEscape: true,
+                  onStart: () => {
+                    if (weekState) apply({ ...weekState, dragging: { id, action } })
+                  },
+                  onMove: sample => {
+                    if (!weekState) return
+                    const next =
+                      action === 'resize'
+                        ? edge === 'start'
+                          ? {
+                              ...plan,
+                              start: Math.max(
+                                W_START,
+                                plan.end - W_MAX,
+                                Math.min(valueAt(plan.track, sample.y), plan.end - W_MIN),
+                              ),
+                            }
+                          : {
+                              ...plan,
+                              end: Math.min(
+                                W_END,
+                                plan.start + W_MAX,
+                                Math.max(valueAt(plan.track, sample.y), plan.start + W_MIN),
+                              ),
+                            }
+                        : (() => {
+                            const to = weekTrackAt(sample.x) ?? plan.track
+                            const start = Math.max(
+                              W_START,
+                              Math.min(
+                                valueAt(to, sample.y) - grabbed,
+                                W_END - (plan.end - plan.start),
+                              ),
+                            )
+                            return { ...plan, track: to, start, end: start + (plan.end - plan.start) }
+                          })()
+                    apply({
+                      ...weekState,
+                      plans: weekState.plans.map(item => (item.id === id ? next : item)),
+                    })
+                  },
+                  onEnd: () => {
+                    if (weekState?.dragging) apply({ ...weekState, dragging: null })
+                    if (weekSpanStop === stop) weekSpanStop = undefined
+                  },
+                })
+                weekSpanStop = stop
+                return
+              }
               const at = Math.min(valueAt(key, event.clientY), W_END - 60)
               weekDraw = { track: key, start: at }
               apply({
@@ -1508,6 +1599,8 @@ const week = {
               element.removeEventListener('pointermove', move)
               element.removeEventListener('pointerleave', leave)
               window.removeEventListener('pointerup', up)
+              weekSpanStop?.()
+              weekSpanStop = undefined
               weekDraw = null
               weekRoot = null
             }
@@ -1625,11 +1718,21 @@ const week = {
                           `${plan.title}, ${dayLong(plan.track)} ${clock(plan.start)} to ${clock(plan.end)}`,
                         ),
                         ...(short ? [h.DataAttribute('short', '')] : []),
+                        ...(state.dragging?.id === plan.id
+                          ? [
+                              state.dragging.action === 'move'
+                                ? h.DataAttribute('dragging', '')
+                                : h.DataAttribute('resizing', ''),
+                            ]
+                          : []),
                         h.Style({
                           position: 'absolute',
                           top: percent(from),
                           height: percent(size),
-                          ...(lane && lane.lanes > 1
+                          // As createSpans' spanStyle, the lane place is always
+                          // set — a lone plan takes the whole column instead
+                          // of shrinking to its text.
+                          ...(lane
                             ? {
                                 insetInlineStart: percent(lane.lane / lane.lanes),
                                 width: percent(1 / lane.lanes),
@@ -1637,9 +1740,9 @@ const week = {
                             : {}),
                           '--hue': String(plan.hue),
                         }),
-                        // PORT NOTE: moving and resizing existing plans is
-                        // approximated with the arrow keys; the reference
-                        // drags bodies and edges through createSpans.
+                        // PORT NOTE: the reference drags bodies and edges
+                        // through createSpans; the arrow keys keep the
+                        // reference's keyboard side of that.
                         h.OnKeyDownPreventDefault((key, modifiers) => {
                           if (key === 'Delete' || key === 'Backspace') {
                             return Option.some(

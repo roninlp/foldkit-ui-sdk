@@ -1,11 +1,13 @@
-import { Option, Stream } from 'effect'
+import { Effect, Option, Queue, Stream } from 'effect'
 import * as Dom from 'foldkit/dom'
 import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
+import type { MountAction } from 'foldkit/mount'
 
 import {
   announce,
   animateIn,
   ariaKeyshortcuts,
+  bindDrag,
   cellsToText,
   formatShortcut,
   matchesShortcut,
@@ -783,6 +785,104 @@ const sheetBounds = (state: SheetState) => {
 
 const sheetBase = 'sink-language-sheet'
 
+/*
+ * PORT NOTE: `createCellRange`'s pointer side runs here on native listeners,
+ * as the primitive runs it on `bind`: a press makes the cell active and drops
+ * the range, Shift stretches the range from the active cell to the pressed
+ * one, and dragging paints the rectangle out to the cell under the pointer,
+ * found with `elementsFromPoint` because the captured cell no longer hits.
+ * `set` resolves a function against the state of the render that made it, so
+ * the controller keeps the optimistic slice here and offers static states,
+ * letting successive paint messages compose.
+ */
+let sheetLive: { state: SheetState; set: TileContext<SheetState>['set'] } | null =
+  null
+let sheetStop: (() => void) | undefined
+
+const sheetCellOf = (node: Element | null | undefined) => {
+  if (!node) return null
+  const cell = node.closest('.lg-sheet-cell')
+  if (!(cell instanceof HTMLElement)) return null
+  const found = /-cell-(\d+)-(\d+)$/.exec(cell.id)
+  return found
+    ? { el: cell, row: Number(found[1]), col: Number(found[2]) }
+    : null
+}
+
+const sheetPointerMount = (): MountAction<Message, never> => ({
+  name: 'sink-language-sheet-pointer',
+  f: (element: Element) =>
+    Stream.callback<Message>(queue =>
+      Effect.gen(function* () {
+        yield* Effect.acquireRelease(
+          Effect.sync(() => {
+            const send = (message: Message) => Queue.offerUnsafe(queue, message)
+            const apply = (next: (current: SheetState) => SheetState) => {
+              if (!sheetLive) return
+              const state = next(sheetLive.state)
+              sheetLive = { ...sheetLive, state }
+              send(sheetLive.set(state))
+            }
+            const board = element as HTMLElement
+            const down = (event: PointerEvent) => {
+              if (event.button !== 0) return
+              const press = sheetCellOf(event.target as Element | null)
+              if (!press || !board.contains(press.el)) return
+              const active = sheetLive?.state.active ?? null
+              if (event.shiftKey && active) {
+                event.preventDefault()
+                apply(current => ({
+                  ...current,
+                  range: {
+                    anchor: current.range?.anchor ?? active,
+                    end: { row: press.row, col: press.col },
+                  },
+                }))
+                return
+              }
+              apply(current => ({
+                ...current,
+                active: { row: press.row, col: press.col },
+                range: null,
+              }))
+              const paint = (x: number, y: number) => {
+                const hit = document
+                  .elementsFromPoint(x, y)
+                  .map(node => sheetCellOf(node))
+                  .find(cell => cell !== null)
+                if (!hit) return
+                apply(current => ({
+                  ...current,
+                  range:
+                    hit.row === press.row && hit.col === press.col
+                      ? null
+                      : {
+                          anchor: { row: press.row, col: press.col },
+                          end: { row: hit.row, col: hit.col },
+                        },
+                }))
+              }
+              sheetStop?.()
+              sheetStop = bindDrag(press.el, event, {
+                onMove: sample => paint(sample.x, sample.y),
+                onEnd: () => {
+                  sheetStop = undefined
+                },
+              })
+            }
+            board.addEventListener('pointerdown', down)
+            return () => {
+              board.removeEventListener('pointerdown', down)
+              sheetStop?.()
+              sheetStop = undefined
+            }
+          }),
+          cleanup => Effect.sync(cleanup),
+        )
+      }),
+    ),
+})
+
 const sheet = {
   initial: {
     active: null,
@@ -791,6 +891,7 @@ const sheet = {
     note: '',
   } as SheetState,
   render: ({ state, set, h }: TileContext<SheetState>) => {
+    sheetLive = { state, set }
     const bounds = sheetBounds(state)
     const selectedText = bounds
       ? cellsToText(
@@ -853,26 +954,31 @@ const sheet = {
 
     // PORT NOTE: `createCellRange` also handles Command+A and Page keys; the
     // arrows, Shift+arrows, Home/End and Escape it needs for this demo are
-    // reimplemented on the cells' own focus positions.
+    // reimplemented on the cells' own focus positions. A key can land before
+    // the render after a press, so the range grows from the optimistic slice
+    // the pointer controller keeps, not from this render's state.
+    const apply = (slice: SheetState): Message => {
+      sheetLive = { state: slice, set }
+      return set(slice)
+    }
+    const live = (): SheetState => sheetLive?.state ?? state
     const navigate = (key: string, shiftKey: boolean, row: number, col: number) => {
       if (key === 'Escape') {
-        return focusMove(
-          `#${sheetBase}-cell-${row}-${col}`,
-          set(current => ({ ...current, range: null })),
-        )
+        return focusMove(`#${sheetBase}-cell-${row}-${col}`, apply({ ...live(), range: null }))
       }
       const dr =
         key === 'ArrowDown' ? 1 : key === 'ArrowUp' ? -1 : 0
       const dc =
         key === 'ArrowRight' ? 1 : key === 'ArrowLeft' ? -1 : 0
       if (dr === 0 && dc === 0) return Option.none()
+      const current = live()
       const next = {
-        row: Math.max(0, Math.min(state.cells.length - 1, row + dr)),
+        row: Math.max(0, Math.min(current.cells.length - 1, row + dr)),
         col: Math.max(0, Math.min(SHEET_COLS.length - 1, col + dc)),
       }
       return focusMove(
         `#${sheetBase}-cell-${next.row}-${next.col}`,
-        set(current =>
+        apply(
           shiftKey
             ? {
                 ...current,
@@ -910,6 +1016,7 @@ const sheet = {
                 ]
               : []),
             h.OnPastePreventDefault(text => pasteInto(text)),
+            h.OnMount(sheetPointerMount()),
           ],
           SHEET_START.map((_, row) =>
             h.div([h.Role('row'), h.Class('lg-sheet-row')], [
@@ -961,15 +1068,6 @@ const sheet = {
                     h.Class('lg-sheet-cell'),
                     h.OnKeyDownFocus((key, modifiers) =>
                       navigate(key, modifiers.shiftKey, row, col),
-                    ),
-                    h.OnPointerDown(() =>
-                      Option.some(
-                        set(current => ({
-                          ...current,
-                          active: { row, col },
-                          range: null,
-                        })),
-                      ),
                     ),
                   ],
                   [text],

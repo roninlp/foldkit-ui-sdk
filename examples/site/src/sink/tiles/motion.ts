@@ -1533,12 +1533,15 @@ const paletteView = ({ state, set, h }: TileContext<PaletteState>) => {
             const before = readLive<PaletteState>('motion-palette').state
             let selected = [...before.selected]
             if (event.shiftKey) {
+              // As createSelection.extend, a Shift range adds to what was
+              // selected when the anchor was set, instead of replacing it.
               const anchor = before.focused ?? key
               const a = before.order.indexOf(anchor)
               const b = before.order.indexOf(key)
               const lo = Math.min(a, b)
               const hi = Math.max(a, b)
-              selected = before.order.slice(lo, hi + 1)
+              const range = before.order.slice(lo, hi + 1)
+              selected = [...new Set([...before.selected, ...range])]
             } else if (event.metaKey || event.ctrlKey) {
               selected = selected.includes(key)
                 ? selected.filter(item => item !== key)
@@ -2222,7 +2225,11 @@ const timelineView = ({ state, set, h }: TileContext<TimelineState>) => {
                 item => item.id === id,
               )
               if (!booking) return
-              const resize = !!target?.closest('[data-span-edge]')
+              // The start edge pulls the booking's start with its end fixed,
+              // and the end edge its end with its start fixed, as createSpans
+              // resizes spans; either way the no-overlap rule still applies.
+              const edge = target?.closest('[data-span-edge]')?.getAttribute('data-span-edge')
+              const resize = edge === 'start' || edge === 'end'
               const base = { ...booking }
               stop = bindDrag(root, event, {
                 threshold: 2,
@@ -2233,10 +2240,15 @@ const timelineView = ({ state, set, h }: TileContext<TimelineState>) => {
                       const item = current.bookings.find(entry => entry.id === id)
                       if (!item) return null
                       if (resize) {
-                        return {
-                          ...item,
-                          end: clamp(minutes, item.start + 30, CLOSE),
-                        }
+                        return edge === 'start'
+                          ? {
+                              ...item,
+                              start: clamp(minutes, OPEN, item.end - 30),
+                            }
+                          : {
+                              ...item,
+                              end: clamp(minutes, item.start + 30, CLOSE),
+                            }
                       }
                       const length = base.end - base.start
                       const start = clamp(
@@ -2778,14 +2790,23 @@ const PINS: Record<string, { name: string; x: number; y: number }> = {
   owl: { name: 'Night Owl Espresso', x: 82, y: 60 },
 }
 
-type LassoRect = { x0: number; y0: number; x1: number; y1: number }
+type LassoRect = {
+  x0: number
+  y0: number
+  x1: number
+  y1: number
+  keys: string[]
+}
 type LassoState = {
   selected: string[]
   lasso: LassoRect | null
   size: { w: number; h: number }
 }
-
-const insideRect = (rect: LassoRect, x: number, y: number) => {
+const insideRect = (
+  rect: Pick<LassoRect, 'x0' | 'y0' | 'x1' | 'y1'>,
+  x: number,
+  y: number,
+) => {
   const left = Math.min(rect.x0, rect.x1)
   const right = Math.max(rect.x0, rect.x1)
   const top = Math.min(rect.y0, rect.y1)
@@ -2829,38 +2850,53 @@ const lassoView = ({ state, set, h }: TileContext<LassoState>) => {
                   x: event.clientX - rect.left,
                   y: event.clientY - rect.top,
                 }
+                // As createLasso, a Shift drag adds to what is already
+                // selected instead of replacing it.
+                const base = event.shiftKey
+                  ? readLive<LassoState>('motion-lasso').state.selected
+                  : []
                 update(current => ({
                   ...current,
-                  lasso: { x0: start.x, y0: start.y, x1: start.x, y1: start.y },
+                  lasso: { x0: start.x, y0: start.y, x1: start.x, y1: start.y, keys: base },
                 }))
                 stop?.()
                 stop = bindDrag(root, event, {
                   threshold: 2,
                   onMove: sample =>
-                    update(current => ({
-                      ...current,
-                      lasso: {
+                    update(current => {
+                      const lasso = {
                         x0: start.x,
                         y0: start.y,
                         x1: sample.x - rect.left,
                         y1: sample.y - rect.top,
-                      },
-                    })),
-                  onEnd: (_up, canceled) => {
-                    update(current => {
-                      if (canceled || !current.lasso) {
-                        return { ...current, lasso: null }
                       }
-                      const selected = Object.entries(PINS)
+                      const hit = Object.entries(PINS)
                         .filter(([, pin]) =>
                           insideRect(
-                            current.lasso as LassoRect,
+                            lasso,
                             (pin.x / 100) * rect.width,
                             (pin.y / 100) * rect.height,
                           ),
                         )
                         .map(([key]) => key)
-                      return { ...current, selected, lasso: null }
+                      return {
+                        ...current,
+                        lasso: {
+                          ...lasso,
+                          keys: [...new Set([...base, ...hit])],
+                        },
+                      }
+                    }),
+                  onEnd: (_up, canceled) => {
+                    update(current => {
+                      const draft = current.lasso
+                      if (canceled || !draft) {
+                        return { ...current, lasso: null }
+                      }
+                      if (draft.x0 === draft.x1 && draft.y0 === draft.y1) {
+                        return { ...current, lasso: null }
+                      }
+                      return { ...current, selected: draft.keys, lasso: null }
                     })
                     stop = undefined
                   },
@@ -2900,13 +2936,7 @@ const lassoView = ({ state, set, h }: TileContext<LassoState>) => {
         h.span([h.Class('mo-map-river'), h.Attribute('aria-hidden', 'true')], []),
         ...Object.entries(PINS).map(([key, pin]) => {
           const selected = state.selected.includes(key)
-          const lassoed =
-            !!state.lasso &&
-            insideRect(
-              state.lasso,
-              (pin.x / 100) * state.size.w,
-              (pin.y / 100) * state.size.h,
-            )
+          const lassoed = !!state.lasso?.keys.includes(key)
           return h.button(
             [
               h.Type('button'),

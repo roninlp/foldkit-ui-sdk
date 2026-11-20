@@ -345,6 +345,227 @@ test('the sink keeps the reference behaviors across groups', async ({ page }) =>
   expect(errors).toEqual([])
 })
 
+// The reference drives spans and selections with createSpans and createSelection;
+// the port rebuilds those gestures on bindDrag, so they need their own coverage.
+
+test('the sink drags calendar spans and group selections like the reference', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  // The week: a lone plan fills its day column, moves across days, and both
+  // of its edges stretch it.
+  await page.goto('/?only=studio-week')
+  const week = page.locator('#studio-week')
+  const folio = week.locator('[data-span-id="portfolio"]')
+  await expect(folio).toHaveAttribute('aria-label', 'Folio review, Wednesday 10:00 to 11:30')
+  const folioBox = await folio.boundingBox()
+  const thuBox = await week.locator('[data-week-track="thu"]').boundingBox()
+  expect(folioBox.width).toBeGreaterThan(80)
+
+  await page.mouse.move(folioBox.x + folioBox.width / 2, folioBox.y + folioBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(thuBox.x + thuBox.width / 2, folioBox.y + folioBox.height / 2, {
+    steps: 8,
+  })
+  await page.mouse.up()
+  await expect(folio).toHaveAttribute('aria-label', 'Folio review, Thursday 10:00 to 11:30')
+
+  const dentistEdge = week.locator('[data-span-id="dentist"] [data-span-edge="end"]')
+  const edgeBox = await dentistEdge.boundingBox()
+  await expect(week.locator('[data-span-id="dentist"]')).toHaveAttribute(
+    'aria-label',
+    'Dentist, Thursday 9:15 to 10:00',
+  )
+  await page.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2 + 27, {
+    steps: 5,
+  })
+  await expect(week.locator('[data-span-id="dentist"]')).toHaveAttribute('data-resizing', '')
+  await page.mouse.up()
+  await expect(week.locator('[data-span-id="dentist"]')).toHaveAttribute(
+    'aria-label',
+    'Dentist, Thursday 9:15 to 10:45',
+  )
+
+  // The timeline: the start edge pulls a booking's start, keeping its end.
+  await page.goto('/?only=motion-timeline')
+  const timeline = page.locator('#motion-timeline')
+  const vendor = timeline.locator('[data-booking="vendor"]')
+  await expect(vendor).toHaveAttribute('aria-label', 'Vendor call, 11:00 to 12:30')
+  const startEdge = await vendor.locator('[data-span-edge="start"]').boundingBox()
+  const track = await timeline.locator('[data-tl-track="b"]').boundingBox()
+  await page.mouse.move(startEdge.x + startEdge.width / 2, startEdge.y + startEdge.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(
+    startEdge.x + startEdge.width / 2 - track.width / 8,
+    startEdge.y + startEdge.height / 2,
+    { steps: 6 },
+  )
+  await page.mouse.up()
+  await expect(vendor).toHaveAttribute('aria-label', 'Vendor call, 10:00 to 12:30')
+
+  // The palette: Shift adds to the selection, and a drag carries the group.
+  await page.goto('/?only=motion-palette')
+  const palette = page.locator('#motion-palette')
+  const swatches = palette.locator('[data-swatch]')
+  const chosen = palette.locator('[data-swatch][data-selected]')
+  await expect(chosen).toHaveCount(2)
+  const terracotta = await palette.locator('[data-swatch="terracotta"]').boundingBox()
+  await page.keyboard.down('Shift')
+  await page.mouse.click(terracotta.x + terracotta.width / 2, terracotta.y + terracotta.height / 2)
+  await page.keyboard.up('Shift')
+  await expect(chosen).toHaveCount(3)
+
+  const blush = await palette.locator('[data-swatch="blush"]').boundingBox()
+  await page.mouse.move(
+    terracotta.x + terracotta.width / 2,
+    terracotta.y + terracotta.height / 2,
+  )
+  await page.mouse.down()
+  await page.mouse.move(
+    blush.x + blush.width / 2 + 30,
+    blush.y + blush.height / 2,
+    { steps: 12 },
+  )
+  await page.mouse.up()
+  await expect(chosen).toHaveCount(3)
+  await expect(await swatches.evaluateAll(els => els.map(el => el.dataset.swatch))).toEqual([
+    'sand',
+    'pine',
+    'denim',
+    'charcoal',
+    'olive',
+    'lagoon',
+    'terracotta',
+    'blush',
+  ])
+
+  expect(errors).toEqual([])
+})
+
+test('the sheet paints a cell range under the pointer like the reference', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  await page.goto('/?only=language-sheet')
+  const sheet = page.locator('#language-sheet')
+  const selected = () =>
+    sheet.locator('.lg-sheet-cell[data-selected]').evaluateAll(els => els.map(el => el.id.slice(-3)))
+
+  // The seeded range shows before anything is pressed.
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('C2:D4')
+  expect(await selected()).toEqual(['1-2', '1-3', '2-2', '2-3', '3-2', '3-3'])
+
+  // Dragging across the grid paints the rectangle from the pressed cell.
+  const b2 = await sheet.locator('#sink-language-sheet-cell-1-1').boundingBox()
+  const d4 = await sheet.locator('#sink-language-sheet-cell-3-3').boundingBox()
+  await page.mouse.move(b2.x + b2.width / 2, b2.y + b2.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(d4.x + d4.width / 2, d4.y + d4.height / 2, { steps: 8 })
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('B2:D4')
+  expect(await selected()).toHaveLength(9)
+  await page.mouse.up()
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('B2:D4')
+
+  // A plain press takes the active cell and drops the range.
+  const a2 = await sheet.locator('#sink-language-sheet-cell-1-0').boundingBox()
+  await page.mouse.click(a2.x + a2.width / 2, a2.y + a2.height / 2)
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('A2')
+  expect(await selected()).toEqual(['1-0'])
+  await expect(sheet.locator('[data-active]')).toHaveId('sink-language-sheet-cell-1-0')
+
+  // Shift stretches the range from the active cell to the pressed one.
+  const c3 = await sheet.locator('#sink-language-sheet-cell-2-2').boundingBox()
+  await page.keyboard.down('Shift')
+  await page.mouse.click(c3.x + c3.width / 2, c3.y + c3.height / 2)
+  await page.keyboard.up('Shift')
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('A2:C3')
+  expect(await selected()).toEqual(['1-0', '1-1', '1-2', '2-0', '2-1', '2-2'])
+
+  // The keyboard range still grows from the focused cell.
+  await page.locator('#sink-language-sheet-cell-1-1').click()
+  await page.keyboard.press('Shift+ArrowDown')
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('B2:B3')
+  await page.keyboard.press('ArrowRight')
+  await expect(sheet.locator('.lg-sheet-ref')).toHaveText('C3')
+
+  expect(errors).toEqual([])
+})
+
+// The port's Phosphor font icons take the place of the reference's React svgs,
+// and the gestures that carry selections across a drag are rebuilt on
+// bindDrag. Both sides of that need their own coverage.
+
+test('the sink keeps one icon where the port draws it, and rotations that follow state', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  // The receipt's caret turns with the panel it opens.
+  await page.goto('/?only=overlays-receipt')
+  const receipt = page.locator('#overlays-receipt')
+  const second = receipt.locator('.ly-order-trigger').nth(1)
+  await expect(second.locator('.ly-order-caret')).toHaveCSS('rotate', 'none')
+  await second.click()
+  await expect(second.locator('.ly-order-caret')).toHaveCSS('rotate', '180deg')
+  await second.click()
+  await expect(second.locator('.ly-order-caret')).toHaveCSS('rotate', 'none')
+
+  // The presence caret sits at the trigger's far end, as the reference's
+  // `margin-left: auto` puts it.
+  await page.goto('/?only=overlays-presence')
+  const presence = page.locator('#overlays-presence')
+  await page.waitForTimeout(500)
+  const caretBox = await presence.locator('.ov-presence-trigger [class*="ph-"]').boundingBox()
+  const triggerBox = await presence.locator('.ov-presence-trigger').boundingBox()
+  expect(triggerBox.x + triggerBox.width - (caretBox.x + caretBox.width)).toBeLessThan(20)
+  expect(caretBox.x - triggerBox.x).toBeGreaterThan(100)
+
+  // Stepper icons center in their round buttons.
+  await page.goto('/?only=forms-nights')
+  const nights = page.locator('#forms-nights')
+  const step = async sel => {
+    const btn = await nights.locator(sel).boundingBox()
+    const ic = await nights.locator(`${sel} [class*="ph-"]`).boundingBox()
+    return { dx: ic.x + ic.width / 2 - (btn.x + btn.width / 2), dy: ic.y + ic.height / 2 - (btn.y + btn.height / 2) }
+  }
+  expect(await step('[data-slot="number-input-decrement"]')).toMatchObject({ dx: 0, dy: 0 })
+  expect(await step('[data-slot="number-input-increment"]')).toMatchObject({ dx: 0, dy: 0 })
+
+  // The rating draws one star per slot, not the pair the element's own
+  // masked star would add.
+  await page.goto('/?only=forms-stay-rating')
+  const star = page.locator('#forms-stay-rating .pk-star').first()
+  await expect(star).toHaveCSS('width', '28px')
+  expect(await star.evaluate(el => getComputedStyle(el, '::before').content !== 'none')).toBe(false)
+  expect(await star.evaluate(el => el.querySelectorAll('[class*="ph-"]').length)).toBe(2)
+
+  // A Shift lasso over the pins adds to what was already selected.
+  await page.goto('/?only=motion-lasso')
+  const lasso = page.locator('#motion-lasso')
+  const chosen = () =>
+    lasso.locator('[data-pin][data-selected]').evaluateAll(els => els.map(el => el.getAttribute('aria-label')))
+  const firstPin = await lasso.locator('[data-pin]').first().boundingBox()
+  await page.mouse.click(firstPin.x + firstPin.width / 2, firstPin.y + firstPin.height / 2)
+  await expect
+    .poll(async () => (await chosen()).join(','), { timeout: 3000 })
+    .toBe('Café Lumen')
+  const map = await lasso.locator('.mo-map').boundingBox()
+  await page.keyboard.down('Shift')
+  await page.mouse.move(map.x + 8, map.y + 8)
+  await page.mouse.down()
+  await page.mouse.move(map.x + map.width * 0.9, map.y + map.height * 0.9, { steps: 10 })
+  // The rectangle previews the addition while the pointer is down.
+  expect(await lasso.locator('[data-pin][data-lassoed]').count()).toBeGreaterThan(1)
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+  await expect
+    .poll(async () => (await chosen()).join(','), { timeout: 3000 })
+    .not.toBe('Café Lumen')
+  const after = await chosen()
+  expect(after).toContain('Café Lumen')
+  expect(after.length).toBeGreaterThan(1)
+
+  expect(errors).toEqual([])
+})
+
 test('the component index is generated from docs/components.md', async ({ page }) => {
   const errors = watchConsole(page)
 
