@@ -35,8 +35,12 @@ pnpm run check            # all of the above
 
 - `packages/foldkit-ui-sdk`: the published package.
 - `examples/site`: the marketing, docs and showcase app, built with the bindings it
-  documents — per-component docs pages with a left sidebar that run their component live,
-  a sixteen-demo showcase (the source of `docs/screenshot.png`, `pnpm run screenshot`), a
-  145-tile Sink that composes every entry (`docs/sink.md`), and a live agent-bridge demo.
+  documents and routed with Foldkit's bidirectional routers (`src/route.ts`) — a docs page
+  for every import entry at `/docs/:doc` with a left sidebar, each running its component
+  live beside its parts table (`src/demos.ts` + `src/component-demos.ts`), a 52-demo
+  showcase (the source of `docs/screenshot.png`, `pnpm run screenshot`), a 145-tile Sink at
+  `/sink` whose `?only=` / `?uses=` / `?mode=` filter is route state (`docs/sink.md`), the
+  agent bridge on the commands guide, a home CTA that copies an agent prompt
+  (`src/agent-prompt.ts`), and TanStack Highlight on the code samples (`src/highlight.ts`).
 - `tests`: the Playwright spec that drives the site.
 - `docs`: architecture, the generated component index, the Sink's findings, CI, and the screenshot.

@@ -26,6 +26,7 @@ import {
   Tooltip,
 } from 'foldkit-ui-sdk'
 
+import { componentDemos } from './component-demos'
 import { Message, type Model } from './model'
 // Every live demo on the site: the showcase grid renders all of them, and
 // each component's docs page renders its own. One entry per demo, so the two
@@ -100,7 +101,7 @@ const star = (h: HtmlBuilder<Message>) =>
 const actionButton = (h: HtmlBuilder<Message>, text: string) =>
   h.button([h.Type('button')], [text])
 
-export const demos: ReadonlyArray<Demo> = [
+const baseDemos: ReadonlyArray<Demo> = [
   {
     slug: 'toggle',
     title: 'Toggle',
@@ -1054,6 +1055,9 @@ field([], [
 ]
 
 // The docs pages look demos up by slug; the sidebar walks the same array, so
-// the navigation and the pages cannot drift apart either.
+// the navigation and the pages cannot drift apart either. component-demos.ts
+// holds the pages for the entries the showcase's first sixteen do not cover.
+export const demos: ReadonlyArray<Demo> = [...baseDemos, ...componentDemos]
+
 export const findDemo = (slug: string): Demo | undefined =>
   demos.find(demo => demo.slug === slug)

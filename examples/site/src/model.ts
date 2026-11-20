@@ -1,36 +1,34 @@
-import { Effect, Schema } from 'effect'
-import { Command, Runtime, type Update } from 'foldkit'
+import { Effect, Option, Schema } from 'effect'
+import { Command, Navigation, Runtime, Url, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { modifyFields } from 'foldkit/struct'
 
-// The agent bridge is created before the first render in bridge.ts, so the
-// commands below can call it.
+import { agentPrompt } from './agent-prompt'
 import { agent } from './bridge'
+import {
+  AppRoute,
+  sectionUrl,
+  sections,
+  sinkModes,
+  sinkUrl,
+  urlToAppRoute,
+} from './route'
+import { demoToaster } from './toast'
 
-// MODEL — one Model for the whole site: the page and the docs article being
-// read, the agents demo, and every field the live component demos hold.
-
-export const pages = ['home', 'docs', 'showcase', 'sink', 'agents', 'components'] as const
-export type Page = (typeof pages)[number]
-
-export const sinkModes = ['any', 'all'] as const
-export type SinkMode = (typeof sinkModes)[number]
+// MODEL — one Model for the whole site: the parsed route (which carries the
+// docs article and the sink's shareable filter), the agents demo, and every
+// field the live component demos hold. The URL is the source of truth for
+// where the visitor is; `update` never stores it a second time.
 
 // The sink holds 145 live tiles. Giving every tile its own Model field would
 // make this struct 145 fields long and lose the point of the exercise, so the
 // sink keys one unknown-valued record by tile and each tile narrows its own
 // slice. Every value still lives in the Model, and every change is a Message.
-export const SinkState = Schema.Struct({
-  uses: Schema.Array(Schema.String),
-  mode: Schema.Literals([...sinkModes]),
-  only: Schema.Array(Schema.String),
-  tiles: Schema.Record(Schema.String, Schema.Unknown),
-})
-export type SinkState = typeof SinkState.Type
+export const SinkTiles = Schema.Record(Schema.String, Schema.Unknown)
+export type SinkTiles = typeof SinkTiles.Type
 
 export const Model = Schema.Struct({
-  page: Schema.Literals([...pages]),
-  doc: Schema.String,
+  route: AppRoute,
   notifications: Schema.Boolean,
   agentLog: Schema.String,
   // The showcase demos, one Model field per component.
@@ -52,17 +50,59 @@ export const Model = Schema.Struct({
   role: Schema.NullOr(Schema.String),
   username: Schema.String,
   lastAction: Schema.NullOr(Schema.String),
-  // The sink: every component on one page, with its state and the filter
-  // that narrows the grid by the components a tile uses.
-  sink: SinkState,
+  // The remaining component docs demos: one field per component that holds
+  // state, so every page runs from the same Model the rest of the site uses.
+  alertOpen: Schema.Boolean,
+  alertConfirmed: Schema.Boolean,
+  autocompleteValue: Schema.String,
+  calendarDate: Schema.NullOr(Schema.String),
+  carouselPage: Schema.Number,
+  collapsibleOpen: Schema.Boolean,
+  colorValue: Schema.String,
+  genreValues: Schema.Array(Schema.String),
+  commandQuery: Schema.String,
+  dateInputValue: Schema.NullOr(Schema.String),
+  datePickerValue: Schema.NullOr(Schema.String),
+  drawerOpen: Schema.Boolean,
+  fileName: Schema.NullOr(Schema.String),
+  listboxValue: Schema.NullOr(Schema.String),
+  menubarAction: Schema.NullOr(Schema.String),
+  navMenuValue: Schema.NullOr(Schema.String),
+  numberValue: Schema.Number,
+  otpValue: Schema.String,
+  pageNumber: Schema.Number,
+  passwordValue: Schema.String,
+  passwordVisible: Schema.Boolean,
+  resizableLayout: Schema.Array(Schema.Number),
+  scrollTrack: Schema.NullOr(Schema.String),
+  textareaValue: Schema.String,
+  timeValue: Schema.NullOr(Schema.String),
+  timelineValue: Schema.NullOr(Schema.String),
+  tokenValues: Schema.Array(Schema.String),
+  toolbarMarks: Schema.Array(Schema.String),
+  treeExpanded: Schema.Array(Schema.String),
+  treeSelected: Schema.NullOr(Schema.String),
+  waterfallExpanded: Schema.Array(Schema.String),
+  waterfallSelected: Schema.NullOr(Schema.String),
+  // Whether the home page's agent-prompt CTA has copied.
+  promptCopied: Schema.Boolean,
+  // The sink: its tile state. The `?only=` / `?uses=` / `?mode=` filter is
+  // route state, so it lives in the route the URL parses to.
+  sinkTiles: SinkTiles,
 })
 export type Model = typeof Model.Type
 
 // MESSAGE
 
 export const Message = defineMessageUnion({
-  SetPage: { page: Schema.Literals([...pages]) },
-  SetDoc: { doc: Schema.String },
+  // Navigation: link clicks arrive as UrlRequests, URL changes as ChangedUrl,
+  // and the top navigation reports a section to turn into a NavigateInternal.
+  ClickedLink: { request: Navigation.UrlRequest },
+  ChangedUrl: { url: Url.Url },
+  SelectedSection: { section: Schema.Literals([...sections]) },
+  CompletedNavigateInternal: {},
+  CompletedReplaceUrl: {},
+  CompletedLoadExternal: {},
   ChangedNotifications: { checked: Schema.Boolean },
   ClickedAgentSnapshot: {},
   FinishedAgentSnapshot: { log: Schema.String },
@@ -87,18 +127,120 @@ export const Message = defineMessageUnion({
   SelectedMenuAction: { action: Schema.String },
   ChangedRole: { value: Schema.NullOr(Schema.String) },
   ChangedUsername: { value: Schema.String },
-  // The sink: its shareable filter and each tile's own state slice.
+  // The home page's agent-prompt CTA: the click runs a Command that writes the
+  // prompt to the clipboard and reports back.
+  ClickedCopyAgentPrompt: {},
+  FinishedCopyAgentPrompt: {},
+  // The remaining component docs demos.
+  ChangedAlertOpen: { open: Schema.Boolean },
+  ClickedAlertConfirm: {},
+  ChangedAutocomplete: { value: Schema.String },
+  ChangedCalendarDate: { value: Schema.NullOr(Schema.String) },
+  ChangedCarouselPage: { page: Schema.Number },
+  ChangedCollapsibleOpen: { open: Schema.Boolean },
+  ChangedColor: { value: Schema.String },
+  ChangedGenres: { values: Schema.Array(Schema.String) },
+  ChangedCommandQuery: { query: Schema.String },
+  ChangedDateInput: { value: Schema.NullOr(Schema.String) },
+  ChangedDatePicker: { value: Schema.NullOr(Schema.String) },
+  ChangedDrawerOpen: { open: Schema.Boolean },
+  ChangedFile: { name: Schema.NullOr(Schema.String) },
+  ChangedListbox: { value: Schema.NullOr(Schema.String) },
+  SelectedMenubarAction: { action: Schema.String },
+  SelectedNavMenu: { value: Schema.NullOr(Schema.String) },
+  ChangedNumber: { value: Schema.Number },
+  ChangedOtp: { value: Schema.String },
+  ChangedPageNumber: { page: Schema.Number },
+  ChangedPassword: { value: Schema.String },
+  ChangedPasswordVisible: { visible: Schema.Boolean },
+  ChangedResizableLayout: { layout: Schema.Array(Schema.Number) },
+  ChangedScrollTrack: { value: Schema.NullOr(Schema.String) },
+  ChangedTextarea: { value: Schema.String },
+  ChangedTime: { value: Schema.NullOr(Schema.String) },
+  SelectedTimeline: { value: Schema.NullOr(Schema.String) },
+  ChangedTokens: { values: Schema.Array(Schema.String) },
+  ChangedToolbarMarks: { marks: Schema.Array(Schema.String) },
+  ChangedTreeExpanded: { expanded: Schema.Array(Schema.String) },
+  ChangedTreeSelected: { value: Schema.NullOr(Schema.String) },
+  ChangedWaterfallExpanded: { expanded: Schema.Array(Schema.String) },
+  ChangedWaterfallSelected: { value: Schema.NullOr(Schema.String) },
+  ClickedShowToast: {},
+  FinishedShowToast: {},
+  // The sink: the filter is URL state, so these navigate (replacing the
+  // history entry, the way a filter bar should) instead of writing the Model,
+  // and each tile's own state slice comes back as a Message.
   SinkToggleUse: { name: Schema.String, pressed: Schema.Boolean },
   SinkModeSet: { mode: Schema.Literals([...sinkModes]) },
   SinkClearUses: {},
   SinkTileStateSet: { tileId: Schema.String, state: Schema.Unknown },
-  SinkUrlSynced: {},
+  // A no-op several tiles dispatch: form submits that must not reload the
+  // page, and fallbacks where nothing needs to change.
   SinkDone: {},
 })
 export type Message = typeof Message.Type
 
-// COMMANDS — the agent bridge is a Promise API, so the demo runs it as a
-// Foldkit Command and reports back with a Message.
+// COMMANDS — navigation as Effects, and the agent bridge, which is a Promise
+// API, so the demo runs it as a Foldkit Command and reports back with a
+// Message.
+
+const NavigateInternal = Command.define('NavigateInternal', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedNavigateInternal],
+  execute: ({ url }) =>
+    Navigation.pushUrl(url).pipe(Effect.as(Message.CompletedNavigateInternal())),
+})
+
+// The sink's filter changes replace the current history entry rather than
+// pushing one per click, so sharing a filter never walls the back button up.
+const ReplaceUrl = Command.define('ReplaceUrl', {
+  args: { url: Schema.String },
+  messages: [Message.CompletedReplaceUrl],
+  execute: ({ url }) =>
+    Navigation.replaceUrl(url).pipe(Effect.as(Message.CompletedReplaceUrl())),
+})
+
+const LoadExternal = Command.define('LoadExternal', {
+  args: { href: Schema.String },
+  messages: [Message.CompletedLoadExternal],
+  execute: ({ href }) =>
+    Navigation.load(href).pipe(Effect.as(Message.CompletedLoadExternal())),
+})
+
+// The home page's agent-prompt CTA. Clipboard access is async, so it runs as a
+// Command and reports back with a Message; the fallback keeps it working where
+// navigator.clipboard is unavailable.
+const CopyAgentPrompt = Command.define('CopyAgentPrompt', {
+  messages: [Message.FinishedCopyAgentPrompt],
+  execute: Effect.promise(async () => {
+    try {
+      await navigator.clipboard.writeText(agentPrompt)
+    } catch {
+      const area = document.createElement('textarea')
+      area.value = agentPrompt
+      area.setAttribute('readonly', '')
+      area.style.position = 'fixed'
+      area.style.opacity = '0'
+      document.body.append(area)
+      area.select()
+      document.execCommand('copy')
+      area.remove()
+    }
+    return Message.FinishedCopyAgentPrompt()
+  }),
+})
+
+// The Toast demo fires the docs' toaster from a Command, the same shape as any
+// other side effect in update.
+const ShowDemoToast = Command.define('ShowDemoToast', {
+  messages: [Message.FinishedShowToast],
+  execute: Effect.sync(() => {
+    demoToaster('Saved to your library', {
+      description: 'The card is now on the shelf with the rest of the collection.',
+      action: { label: 'Undo', dismiss: true, onAction: () => {} },
+    })
+    return Message.FinishedShowToast()
+  }),
+})
 
 const SnapshotAgent = Command.define('SnapshotAgent', {
   messages: [Message.FinishedAgentSnapshot],
@@ -133,40 +275,67 @@ const ActAgent = Command.define('ActAgent', {
   }),
 })
 
-// The sink's filter is shareable: `?only=forms-plan-picker`, `?uses=Dialog`,
-// `?mode=all`. update returns this Command when the filter changes, and its
-// Effect writes the address bar without touching the Model.
-const SyncSinkUrl = Command.define('SyncSinkUrl', {
-  args: {
-    uses: Schema.Array(Schema.String),
-    mode: Schema.Literals([...sinkModes]),
-    only: Schema.Array(Schema.String),
-  },
-  messages: [Message.SinkUrlSynced],
-  execute: ({ uses, mode, only }) =>
-    Effect.sync(() => {
-      const url = new URL(location.href)
-      if (uses.length > 0) url.searchParams.set('uses', uses.join(','))
-      else url.searchParams.delete('uses')
-      if (mode === 'all') url.searchParams.set('mode', 'all')
-      else url.searchParams.delete('mode')
-      if (only.length > 0) url.searchParams.set('only', only.join(','))
-      else url.searchParams.delete('only')
-      history.replaceState(history.state, '', url)
-      return Message.SinkUrlSynced()
-    }),
-})
-
 // UPDATE
+
+// The sink filter a navigation carries away from the sink page: the current
+// Sink route's filter, or the empty one anywhere else.
+const currentSinkFilter = (model: Model) => {
+  if (model.route._tag !== 'Sink') {
+    return { uses: Option.none(), mode: Option.none(), only: Option.none() } as const
+  }
+  const { uses, mode, only } = model.route
+  return { uses, mode, only } as const
+}
+
+// The URL for the sink with one filter field changed. A `uses` list of one
+// carries no `mode`, matching the filter bar, which only offers Any/All once
+// two names are selected.
+const sinkFilterUrl = (
+  model: Model,
+  changed: {
+    uses?: Option.Option<ReadonlyArray<string>>
+    mode?: Option.Option<(typeof sinkModes)[number]>
+    only?: Option.Option<ReadonlyArray<string>>
+  },
+): string => {
+  const current = currentSinkFilter(model)
+  const uses = changed.uses ?? current.uses
+  const hasUses = Option.isSome(uses) && Option.getOrElse(uses, () => []).length > 0
+  return sinkUrl({
+    uses: hasUses ? uses : Option.none(),
+    mode: changed.mode !== undefined ? changed.mode : hasUses ? current.mode : Option.none(),
+    only: changed.only ?? current.only,
+  })
+}
 
 export const update = (model: Model, message: Message) =>
   Message.match<Update.Return<Model, Message>>(message, {
-    SetPage: ({ page }) => ({
-      model: modifyFields(model, { page: () => page }),
+    // A same-origin link: push the URL and let the runtime report the change
+    // back. External links do a full load.
+    ClickedLink: ({ request }) =>
+      Navigation.UrlRequest.match<Update.Return<Model, Message>>(request, {
+        Internal: ({ url }) => ({
+          model,
+          commands: [NavigateInternal({ url: Url.toString(url) })],
+        }),
+        External: ({ href }) => ({
+          model,
+          commands: [LoadExternal({ href })],
+        }),
+      }),
+    // Every URL change — push, replace, back and forward — arrives here.
+    ChangedUrl: ({ url }) => ({
+      model: modifyFields(model, { route: () => urlToAppRoute(url) }),
     }),
-    SetDoc: ({ doc }) => ({
-      model: modifyFields(model, { doc: () => doc }),
+    // The top navigation: build the section's URL from the same router that
+    // parses it, and navigate.
+    SelectedSection: ({ section }) => ({
+      model,
+      commands: [NavigateInternal({ url: sectionUrl(section) })],
     }),
+    CompletedNavigateInternal: () => ({ model }),
+    CompletedReplaceUrl: () => ({ model }),
+    CompletedLoadExternal: () => ({ model }),
     ChangedNotifications: ({ checked }) => ({
       model: modifyFields(model, { notifications: () => checked }),
     }),
@@ -246,77 +415,166 @@ export const update = (model: Model, message: Message) =>
     ChangedUsername: ({ value }) => ({
       model: modifyFields(model, { username: () => value }),
     }),
-    // The sink: store a value, and sync the shareable filter into the URL.
+    // The home page's agent-prompt CTA.
+    ClickedCopyAgentPrompt: () => ({
+      model,
+      commands: [CopyAgentPrompt()],
+    }),
+    FinishedCopyAgentPrompt: () => ({
+      model: modifyFields(model, { promptCopied: () => true }),
+    }),
+    // The remaining component docs demos.
+    ChangedAlertOpen: ({ open }) => ({
+      model: modifyFields(model, {
+        alertOpen: () => open,
+        ...(open ? { alertConfirmed: () => false } : {}),
+      }),
+    }),
+    ClickedAlertConfirm: () => ({
+      model: modifyFields(model, {
+        alertOpen: () => false,
+        alertConfirmed: () => true,
+      }),
+    }),
+    ChangedAutocomplete: ({ value }) => ({
+      model: modifyFields(model, { autocompleteValue: () => value }),
+    }),
+    ChangedCalendarDate: ({ value }) => ({
+      model: modifyFields(model, { calendarDate: () => value }),
+    }),
+    ChangedCarouselPage: ({ page }) => ({
+      model: modifyFields(model, { carouselPage: () => page }),
+    }),
+    ChangedCollapsibleOpen: ({ open }) => ({
+      model: modifyFields(model, { collapsibleOpen: () => open }),
+    }),
+    ChangedColor: ({ value }) => ({
+      model: modifyFields(model, { colorValue: () => value }),
+    }),
+    ChangedGenres: ({ values }) => ({
+      model: modifyFields(model, { genreValues: () => values }),
+    }),
+    ChangedCommandQuery: ({ query }) => ({
+      model: modifyFields(model, { commandQuery: () => query }),
+    }),
+    ChangedDateInput: ({ value }) => ({
+      model: modifyFields(model, { dateInputValue: () => value }),
+    }),
+    ChangedDatePicker: ({ value }) => ({
+      model: modifyFields(model, { datePickerValue: () => value }),
+    }),
+    ChangedDrawerOpen: ({ open }) => ({
+      model: modifyFields(model, { drawerOpen: () => open }),
+    }),
+    ChangedFile: ({ name }) => ({
+      model: modifyFields(model, { fileName: () => name }),
+    }),
+    ChangedListbox: ({ value }) => ({
+      model: modifyFields(model, { listboxValue: () => value }),
+    }),
+    SelectedMenubarAction: ({ action }) => ({
+      model: modifyFields(model, { menubarAction: () => action }),
+    }),
+    SelectedNavMenu: ({ value }) => ({
+      model: modifyFields(model, { navMenuValue: () => value }),
+    }),
+    ChangedNumber: ({ value }) => ({
+      model: modifyFields(model, { numberValue: () => value }),
+    }),
+    ChangedOtp: ({ value }) => ({
+      model: modifyFields(model, { otpValue: () => value }),
+    }),
+    ChangedPageNumber: ({ page }) => ({
+      model: modifyFields(model, { pageNumber: () => page }),
+    }),
+    ChangedPassword: ({ value }) => ({
+      model: modifyFields(model, { passwordValue: () => value }),
+    }),
+    ChangedPasswordVisible: ({ visible }) => ({
+      model: modifyFields(model, { passwordVisible: () => visible }),
+    }),
+    ChangedResizableLayout: ({ layout }) => ({
+      model: modifyFields(model, { resizableLayout: () => layout }),
+    }),
+    ChangedScrollTrack: ({ value }) => ({
+      model: modifyFields(model, { scrollTrack: () => value }),
+    }),
+    ChangedTextarea: ({ value }) => ({
+      model: modifyFields(model, { textareaValue: () => value }),
+    }),
+    ChangedTime: ({ value }) => ({
+      model: modifyFields(model, { timeValue: () => value }),
+    }),
+    SelectedTimeline: ({ value }) => ({
+      model: modifyFields(model, { timelineValue: () => value }),
+    }),
+    ChangedTokens: ({ values }) => ({
+      model: modifyFields(model, { tokenValues: () => values }),
+    }),
+    ChangedToolbarMarks: ({ marks }) => ({
+      model: modifyFields(model, { toolbarMarks: () => marks }),
+    }),
+    ChangedTreeExpanded: ({ expanded }) => ({
+      model: modifyFields(model, { treeExpanded: () => expanded }),
+    }),
+    ChangedTreeSelected: ({ value }) => ({
+      model: modifyFields(model, { treeSelected: () => value }),
+    }),
+    ChangedWaterfallExpanded: ({ expanded }) => ({
+      model: modifyFields(model, { waterfallExpanded: () => expanded }),
+    }),
+    ChangedWaterfallSelected: ({ value }) => ({
+      model: modifyFields(model, { waterfallSelected: () => value }),
+    }),
+    ClickedShowToast: () => ({
+      model,
+      commands: [ShowDemoToast()],
+    }),
+    FinishedShowToast: () => ({ model }),
+    // The sink's filter is URL state: each change replaces the history entry
+    // with the sink's next URL, and the route re-parses from the URL change.
     SinkToggleUse: ({ name, pressed }) => {
-      const uses = pressed
-        ? [...new Set([...model.sink.uses, name])]
-        : model.sink.uses.filter(other => other !== name)
+      const { uses } = currentSinkFilter(model)
+      const list = Option.getOrElse(uses, () => [])
+      const next = pressed
+        ? [...new Set([...list, name])]
+        : list.filter(other => other !== name)
       return {
-        model: modifyFields(model, { sink: sink => ({ ...sink, uses }) }),
+        model,
         commands: [
-          SyncSinkUrl({ uses, mode: model.sink.mode, only: model.sink.only }),
+          ReplaceUrl({ url: sinkFilterUrl(model, { uses: Option.some(next) }) }),
         ],
       }
     },
     SinkModeSet: ({ mode }) => ({
-      model: modifyFields(model, { sink: sink => ({ ...sink, mode }) }),
-      commands: [
-        SyncSinkUrl({ uses: model.sink.uses, mode, only: model.sink.only }),
-      ],
+      model,
+      commands: [ReplaceUrl({ url: sinkFilterUrl(model, { mode: Option.some(mode) }) })],
     }),
     SinkClearUses: () => ({
-      model: modifyFields(model, {
-        sink: sink => ({ ...sink, uses: [], mode: 'any' }),
-      }),
+      model,
       commands: [
-        SyncSinkUrl({ uses: [], mode: 'any', only: model.sink.only }),
+        ReplaceUrl({
+          url: sinkFilterUrl(model, { uses: Option.none(), mode: Option.none() }),
+        }),
       ],
     }),
     SinkTileStateSet: ({ tileId, state }) => ({
       model: modifyFields(model, {
-        sink: sink => ({ ...sink, tiles: { ...sink.tiles, [tileId]: state } }),
+        sinkTiles: tiles => ({ ...tiles, [tileId]: state }),
       }),
     }),
-    SinkUrlSynced: () => ({ model }),
     SinkDone: () => ({ model }),
   })
 
 // INIT
 
-// The filter is read from the URL once, at boot. The site is a client-only
-// Vite app, so the address bar is available; the guard keeps a test or a
-// server render from crashing.
-const initialSinkFilter = () => {
-  if (typeof location === 'undefined') {
-    return { uses: [] as ReadonlyArray<string>, mode: 'any' as const, only: [] as ReadonlyArray<string> }
-  }
-  const params = new URLSearchParams(location.search)
-  const list = (key: string) =>
-    (params.get(key) ?? '')
-      .split(',')
-      .map(value => value.trim())
-      .filter(Boolean)
-  return {
-    uses: list('uses'),
-    mode: params.get('mode') === 'all' ? ('all' as const) : ('any' as const),
-    only: list('only'),
-  }
-}
-
-// A shared `?only=` / `?uses=` link is a Sink link, so booting with one opens
-// the Sink directly instead of landing on Home with a latent filter.
-const initialPage = (): Page => {
-  if (typeof location === 'undefined') return 'home'
-  const params = new URLSearchParams(location.search)
-  return params.has('only') || params.has('uses') || params.has('mode')
-    ? 'sink'
-    : 'home'
-}
-
-export const init: Runtime.ApplicationInit<Model, Message> = () => ({
+// A cold load seeds the Model from the URL the visitor arrived on: a deep
+// link to /docs/dialog or /sink?only=reference boots straight into that page,
+// because Foldkit hands `init` the initial URL and never reports it as a
+// change.
+export const init: Runtime.RoutingApplicationInit<Model, Message> = (url: Url.Url) => ({
   model: {
-    page: initialPage(),
-    doc: 'introduction',
+    route: urlToAppRoute(url),
     notifications: false,
     agentLog: 'Run one of the two steps above.',
     bookmarked: false,
@@ -337,9 +595,39 @@ export const init: Runtime.ApplicationInit<Model, Message> = () => ({
     role: null,
     username: 'ada',
     lastAction: null,
-    sink: {
-      ...initialSinkFilter(),
-      tiles: {},
-    },
+    alertOpen: false,
+    alertConfirmed: false,
+    autocompleteValue: '',
+    calendarDate: '2026-11-20',
+    carouselPage: 0,
+    collapsibleOpen: false,
+    colorValue: '#6e56cf',
+    genreValues: ['ambient'],
+    commandQuery: '',
+    dateInputValue: '2026-11-20',
+    datePickerValue: '2026-11-20',
+    drawerOpen: false,
+    fileName: null,
+    listboxValue: 'inbox',
+    menubarAction: null,
+    navMenuValue: null,
+    numberValue: 3,
+    otpValue: '',
+    pageNumber: 1,
+    passwordValue: 'foldkit',
+    passwordVisible: false,
+    resizableLayout: [38, 62],
+    scrollTrack: 'first',
+    textareaValue: 'Late check-out would be lovely.',
+    timeValue: '18:30',
+    timelineValue: 'v3.5',
+    tokenValues: [],
+    toolbarMarks: ['bold'],
+    treeExpanded: ['src'],
+    treeSelected: 'src/route.ts',
+    waterfallExpanded: ['api'],
+    waterfallSelected: 'scripts',
+    promptCopied: false,
+    sinkTiles: {},
   },
 })

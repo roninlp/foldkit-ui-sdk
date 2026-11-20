@@ -30,7 +30,7 @@ export type TileContext<S> = Readonly<{
 
 /**
  * A ported sink tile. `initial` seeds the Model slice the first time the tile
- * renders; after that the slice lives in `model.sink.tiles[id]`.
+ * renders; after that the slice lives in `model.sinkTiles[id]`.
  */
 export type Tile<S = any> = Readonly<{
   /** Unique, kebab-case, prefixed by its file: "forms-checkout". */

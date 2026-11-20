@@ -28,6 +28,13 @@ const application = Runtime.makeApplication({
   init,
   update,
   view,
+  // The routing config the Foldkit docs prescribe: link clicks arrive as
+  // UrlRequests, every URL change as a ChangedUrl, and init parses the
+  // initial URL for the cold load.
+  routing: {
+    onUrlRequest: request => Message.ClickedLink({ request }),
+    onUrlChange: url => Message.ChangedUrl({ url }),
+  },
   container: document.getElementById('root'),
 })
 

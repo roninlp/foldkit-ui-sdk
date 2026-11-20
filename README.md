@@ -136,12 +136,13 @@ The example app runs with Vite:
 
 | Example | Port | What it is |
 | --- | --- | --- |
-| [examples/site](examples/site) | 5197 | The marketing, docs and showcase site — built with the bindings it documents: per-component pages that run their component live, a sixteen-demo showcase, a 145-tile Sink, and a live agent-bridge demo (`pnpm run dev`) |
+| [examples/site](examples/site) | 5197 | The marketing, docs and showcase site — built with the bindings it documents and routed the way the Foldkit docs prescribe: a docs page for every import entry at `/docs/:doc` that runs its component live, a 52-demo showcase, a 145-tile Sink with its filter in the query string, the agent bridge on the commands guide, a copy-an-agent-prompt CTA, and TanStack Highlight on every code sample (`pnpm run dev`) |
 
 The **Sink** is a 1:1 port of [ui-sdk.dev/sink](https://ui-sdk.dev/sink): the same 145 tiles, copy,
 sizes, tones, bento CSS and floating filter, rendered with `foldkit-ui-sdk` bindings instead of
-React. Filter by the component names a tile uses (`?only=`, `?uses=`, `?mode=all`), or read how it
-is wired and what the port surfaced in [docs/sink.md](docs/sink.md).
+React. Filter by the component names a tile uses (`/sink?only=`, `?uses=`, `?mode=all` — the filter
+is route state, so every filtered view has a URL), or read how it is wired and what the port
+surfaced in [docs/sink.md](docs/sink.md).
 
 See [docs/architecture.md](docs/architecture.md) for how the generator and the binding layer fit
 together.

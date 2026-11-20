@@ -63,6 +63,7 @@ body {
   font-size: 15px;
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
 }
 .brand-mark {
   display: inline-grid;
@@ -101,6 +102,7 @@ body {
 }
 .side-nav .side-group-h:first-child { margin-top: 0; }
 .side-link {
+  display: block;
   text-align: start;
   border: 0;
   background: none;
@@ -111,6 +113,7 @@ body {
   font: inherit;
   font-size: 13.5px;
   cursor: pointer;
+  text-decoration: none;
 }
 .side-link:hover { background: #eef2ff; color: var(--text); }
 .side-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 7px; }
@@ -224,6 +227,7 @@ body {
 /* Buttons: bare ones the parts don't already style */
 
 .btn {
+  display: inline-block;
   font: inherit;
   font-size: 14px;
   padding: 8px 16px;
@@ -232,6 +236,7 @@ body {
   background: var(--card);
   color: var(--text);
   cursor: pointer;
+  text-decoration: none;
   transition: background 120ms ease, border-color 120ms ease;
 }
 .btn:hover { background: #f9fafb; border-color: #d0d5dd; }
@@ -245,18 +250,81 @@ body {
 .btn-danger { color: #dc2626; border-color: #fecaca; }
 .btn-danger:hover { background: #fef2f2; border-color: #fca5a5; }
 
-/* Code blocks */
+/* Code blocks — TanStack Highlight's contract: the renderer emits one
+   compact <pre class="th-code"><code> tree with stable th-* token classes,
+   and the palette rides on the --th-* custom properties its theme generator
+   emits. One markup tree, theme lives here; a different theme is another
+   variable block, never another tree. The agent log reuses the same block
+   chrome without tokens. */
 
 .code {
+  /* --th-* variables: the site's slate theme. */
+  --th-background: #0f172a;
+  --th-token: #e2e8f0;
+  --th-attr: #d19a66;
+  --th-code-inline: #98c379;
+  --th-command: #61afef;
+  --th-comment: #7c8aa0;
+  --th-deleted: #e06c75;
+  --th-function: #61afef;
+  --th-heading: #61afef;
+  --th-inserted: #98c379;
+  --th-keyword: #c678dd;
+  --th-link: #61afef;
+  --th-literal: #56b6c2;
+  --th-meta: #7c8aa0;
+  --th-number: #d19a66;
+  --th-operator: #56b6c2;
+  --th-property: #e06c75;
+  --th-selector: #98c379;
+  --th-string: #98c379;
+  --th-tag: #e06c75;
+  --th-type: #e5c07b;
+  --th-variable: #e06c75;
+
   margin: 0;
   padding: 16px 18px;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: var(--th-background);
+  color: var(--th-token);
   border-radius: 10px;
   font: 12.5px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   overflow-x: auto;
   white-space: pre;
 }
+
+/* The tree Highlight renders: a bare pre inside the block, tokens colored
+   from the variables above. UI SDK styles every inline `code` as a chip
+   (padding, light background), so the block's code element resets that;
+   inline chips elsewhere on the site keep it. */
+.code pre.th-code { margin: 0; font: inherit; }
+.code pre.th-code code {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  font: inherit;
+}
+.code .th-token { color: var(--th-token); }
+.code .th-attr { color: var(--th-attr); }
+.code .th-code-inline { color: var(--th-code-inline); }
+.code .th-command { color: var(--th-command); }
+.code .th-comment { color: var(--th-comment); }
+.code .th-deleted { color: var(--th-deleted); }
+.code .th-function { color: var(--th-function); }
+.code .th-heading { color: var(--th-heading); }
+.code .th-inserted { color: var(--th-inserted); }
+.code .th-keyword { color: var(--th-keyword); }
+.code .th-link { color: var(--th-link); }
+.code .th-literal { color: var(--th-literal); }
+.code .th-meta { color: var(--th-meta); }
+.code .th-number { color: var(--th-number); }
+.code .th-operator { color: var(--th-operator); }
+.code .th-property { color: var(--th-property); }
+.code .th-selector { color: var(--th-selector); }
+.code .th-string { color: var(--th-string); }
+.code .th-tag { color: var(--th-tag); }
+.code .th-type { color: var(--th-type); }
+.code .th-variable { color: var(--th-variable); }
+.code .th-line { display: inline-block; min-width: 100%; width: max-content; }
 
 /* Tables */
 
@@ -340,4 +408,35 @@ body:has(.sink) .topbar {
 body:has(.sink) .site-footer {
   max-width: 1480px;
   border-top-color: oklch(0.89 0.012 80);
+}
+
+/* The remaining component docs demos */
+
+.stack { display: grid; gap: 10px; }
+.cal-heading { min-width: 120px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal-grid { width: min(100%, 320px); }
+.carousel-viewport { overflow: hidden; border-radius: 10px; }
+.carousel-slide {
+  display: grid;
+  place-items: center;
+  min-height: 110px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: var(--accent-strong);
+  font-weight: 650;
+}
+.scroll-area { height: 170px; border: 1px solid var(--border); border-radius: 10px; }
+.scroll-viewport { height: 100%; padding: 8px; }
+.scroll-viewport > * { display: grid; gap: 6px; }
+.crop-viewport { width: min(100%, 240px); height: 200px; }
+.pref-preview { padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.token-editor {
+  min-height: 72px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
 }

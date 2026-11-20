@@ -13,7 +13,7 @@ Model and the property/event seam.
 | Tooling | `src/testing.ts`, `src/agent.ts`, `src/observe.ts`, `src/shortcuts.ts` | Re-exports of UI SDK's framework-agnostic helpers, so one package covers components, testing and agents |
 | Generator | `packages/foldkit-ui-sdk/scripts/generate.mjs` | Reads `@ui-sdk/web/custom-elements.json` and writes both layers |
 | Tests | `packages/foldkit-ui-sdk/test/` | Coverage against the same manifest; browser behavior in `tests/` |
-| Examples | `examples/site` | One Foldkit app: the marketing site, per-component docs pages that run their component live, the sixteen-demo showcase, the 145-tile Sink, and the agents demo |
+| Examples | `examples/site` | One Foldkit app with real routing: the marketing site, a docs page for every one of the 56 import entries at `/docs/:doc` that runs its component live beside its parts table, the 52-demo showcase, the 145-tile Sink with its filter in the `/sink` query string, the agent bridge on the commands guide, and a home CTA that copies an agent-ready prompt |
 
 The package ships TypeScript source, like UI SDK's own adapters, so a consumer needs a bundler
 that compiles TypeScript dependencies. It has no build step and no bundled runtime.
@@ -59,13 +59,17 @@ import { Menu } from 'foldkit-ui-sdk'              // defines everything
 
 - `test/generated.test.ts` compares the generated specs with the manifest: every tag, every
   event, no framework-only properties, one namespace per entry, and a pinned UI SDK version.
-- `tests/site.spec.ts` drives the site in Chromium: navigation through a SegmentedControl,
-  the docs sidebar and its per-component pages (each running its demo live), all sixteen
-  showcase components one Model round-trip at a time, the Sink's 145 tiles and its
-  `?only=` / `?uses=` / `mode=all` filter, the component index parsed from the generated
-  `docs/components.md`, the live agent bridge flipping a Switch through a Foldkit Command,
-  and the light color-scheme pin that keeps component text readable under a dark-mode OS.
-  [docs/sink.md](sink.md) records what the Sink's composition surfaced.
+- `tests/site.spec.ts` drives the site in Chromium: navigation through a SegmentedControl
+  and through the routing the Foldkit docs prescribe — every page is a route, so the spec asserts
+  the URLs (`/docs/:doc`, `/showcase`, the `/sink` query string), deep links that cold-load, back
+  and forward, and the not-found page — plus the docs sidebar and its per-component pages (each
+  running its demo live), all sixteen showcase components one Model round-trip at a time, the
+  Sink's 145 tiles and its `?only=` / `?uses=` / `mode=all` filter, a sweep of every docs page
+  (each renders its live demo, highlighted sample and parts table without a crash), the live
+  agent bridge flipping a Switch through a Foldkit Command on the commands guide, the home
+  agent-prompt CTA writing the prompt to the clipboard, and the light color-scheme pin that
+  keeps component text readable under a dark-mode OS. Code samples are highlighted with TanStack Highlight, whose one `th-*` markup
+  tree the spec checks. [docs/sink.md](sink.md) records what the Sink's composition surfaced.
 - `scripts/screenshot.mjs` recaptures `docs/screenshot.png` from the site's showcase page;
   run it with `pnpm run screenshot`.
 

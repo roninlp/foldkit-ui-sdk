@@ -6,9 +6,15 @@ import { expect, test } from '@playwright/test'
 // navigation is a SegmentedControl, the docs sidebar opens per-component pages
 // that run their component live, the showcase walks all sixteen demos with
 // every state change reaching the Foldkit Model and back, and the agents page
-// runs the real agent bridge through a Foldkit Command.
+// runs the real agent bridge through a Foldkit Command. Every page is a
+// route: links and the SegmentedControl navigate through Foldkit's routing,
+// the sink's filter lives in the URL, and a deep link cold-loads the page it
+// names.
 
-test.use({ baseURL: 'http://localhost:5197' })
+test.use({
+  baseURL: 'http://localhost:5197',
+  permissions: ['clipboard-read', 'clipboard-write'],
+})
 
 // The reference sink's 145 tiles, captured from ui-sdk.dev/sink. The port must
 // match this list exactly: ids, order, sizes, tones and copy.
@@ -41,6 +47,16 @@ test('the home page documents the build with its own components', async ({ page 
   await expect(page.locator('.meta')).toContainText('56 entries')
   await expect(page.locator('.meta')).toContainText('361 tags')
 
+  // The hero has the docs link and the copy-agent-prompt CTA, no showcase
+  // button: the prompt is copied through a Command.
+  await expect(page.locator('.hero-cta')).toContainText('Read the docs')
+  await expect(page.locator('.hero-cta')).toContainText('Copy agent prompt')
+  await expect(page.locator('.hero-cta')).not.toContainText('Browse the showcase')
+  await page.locator('.hero-cta button', { hasText: 'Copy agent prompt' }).click()
+  await expect(page.locator('.hero-cta button')).toContainText('Copied')
+  const clipboard = await page.evaluate(() => navigator.clipboard.readText())
+  expect(clipboard).toContain('Add foldkit-ui-sdk to this Foldkit app')
+
   // The FAQ accordion opens from its trigger.
   await page.locator('[data-slot="accordion-trigger"]').first().click()
   await expect(page.locator('[data-slot="accordion-panel"]').first()).toBeVisible()
@@ -51,27 +67,33 @@ test('the home page documents the build with its own components', async ({ page 
 test('the docs pages run the component they document, from a sidebar', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/')
-
-  // Docs open on the introduction, with the sidebar on the left.
-  await page
-    .locator('[data-slot="segmented-control-item"]')
-    .filter({ hasText: 'Docs' })
-    .click()
+  // A deep link cold-loads the docs page it names.
+  await page.goto('/docs/dialog')
+  await expect(page).toHaveURL(/\/docs\/dialog$/)
   await expect(page.locator('.docs-side')).toBeVisible()
-  await expect(page.locator('.docs-main h1')).toHaveText('Introduction')
-  await expect(page.locator('.side-link')).toHaveCount(25)
+  await expect(page.locator('.docs-main h1')).toHaveText('Dialog')
+  await expect(page.locator('.side-link')).toHaveCount(60)
 
   // A component docs page: overview, live demo, code, the parts.
-  await page.locator('.side-link').filter({ hasText: 'Dialog' }).click()
+  await page.locator('.side-link').filter({ hasText: /^Dialog$/ }).click()
   await expect(page.locator('.docs-main h1')).toHaveText('Dialog')
   await expect(page.locator('.import-chip')).toHaveText('foldkit-ui-sdk/dialog')
   await expect(page.locator('.demo-frame')).toBeVisible()
   await expect(page.locator('.docs-main .code')).toContainText('foldkit-ui-sdk/dialog')
   await expect(page.locator('.docs-main .table')).toContainText('<ui-dialog-content>')
+  // The sample is highlighted: one TanStack Highlight tree, `th-*` classes,
+  // themed from the stylesheet's --th-* variables.
+  const sample = page.locator('.docs-main .code pre.th-code')
+  await expect(sample).toHaveAttribute('data-language', 'ts')
+  await expect(sample.locator('.th-keyword').first()).toBeVisible()
+  await expect(sample.locator('.th-string').first()).toBeVisible()
+  // UI SDK styles every inline `code` as a chip; the block's code element must
+  // reset that, or the token tree sits on white line boxes.
+  await expect(sample.locator('code')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+  await expect(sample.locator('code')).toHaveCSS('padding-top', '0px')
   await expect(page.locator('.docs-main a', { hasText: 'Open it in the Sink' })).toHaveAttribute(
     'href',
-    '/?uses=Dialog',
+    '/sink?uses=Dialog',
   )
 
   // The demo on the docs page is live and holds its state in the Model.
@@ -83,12 +105,66 @@ test('the docs pages run the component they document, from a sidebar', async ({ 
   await expect(demo).toContainText('Project deleted.')
 
   // A getting-started article from the same sidebar.
-  await page.locator('.side-link').filter({ hasText: 'Install' }).click()
+  await page.locator('.side-link').filter({ hasText: /^Install$/ }).click()
+  await expect(page).toHaveURL(/\/docs\/install$/)
   await expect(page.locator('.docs-main h1')).toHaveText('Install')
   await expect(page.locator('.docs-main .code')).toContainText('pnpm add foldkit-ui-sdk')
+  // The shell sample is highlighted as shell, `pnpm` as a command token.
+  const installCode = page.locator('.docs-main .code pre.th-code')
+  await expect(installCode).toHaveAttribute('data-language', 'shell')
+  await expect(installCode.locator('.th-command')).not.toHaveCount(0)
 
   // The sidebar marks the open article.
   await expect(page.locator('.side-link[aria-current="page"]')).toHaveText('Install')
+
+  expect(errors).toEqual([])
+})
+
+// Every page is a route, so the address bar is the source of truth: links
+// and the section picker push history, back and forward re-parse the URL,
+// and a deep link cold-loads the page it names.
+
+test('navigation routes through the URL with history and a not-found page', async ({ page }) => {
+  const errors = watchConsole(page)
+
+  // The cold load parses the URL it was handed: a deep link boots straight
+  // into the docs page it names.
+  await page.goto('/docs/dialog')
+  await expect(page.locator('.docs-main h1')).toHaveText('Dialog')
+
+  // A sidebar link pushes a history entry.
+  await page.locator('.side-link').filter({ hasText: /^Install$/ }).click()
+  await expect(page).toHaveURL(/\/docs\/install$/)
+
+  // Back re-parses the previous URL into the previous page.
+  await page.goBack()
+  await expect(page).toHaveURL(/\/docs\/dialog$/)
+  await expect(page.locator('.docs-main h1')).toHaveText('Dialog')
+
+  // The SegmentedControl navigates the same way, through a command.
+  await page
+    .locator('[data-slot="segmented-control-item"]')
+    .filter({ hasText: 'Showcase' })
+    .click()
+  await expect(page).toHaveURL(/\/showcase$/)
+  await page.goBack()
+  await expect(page).toHaveURL(/\/docs\/dialog$/)
+
+  // The brand link routes home, and back and forward walk the pushed entries.
+  await page.locator('.brand').click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.locator('.hero h1')).toContainText('UI SDK')
+  await page.goBack()
+  await expect(page).toHaveURL(/\/docs\/dialog$/)
+  await page.goForward()
+  await expect(page).toHaveURL(/\/$/)
+
+  // An unmatched path falls through to the NotFound route, which links home.
+  await page.goto('/nowhere/at/all')
+  await expect(page.locator('h1', { hasText: 'Page not found' })).toBeVisible()
+  await page.locator('a', { hasText: 'Back to the home page' }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.locator('.hero h1')).toContainText('UI SDK')
 
   expect(errors).toEqual([])
 })
@@ -101,17 +177,26 @@ test('the showcase components hold their state in the Foldkit Model', async ({ p
     .locator('[data-slot="segmented-control-item"]')
     .filter({ hasText: 'Showcase' })
     .click()
-  await expect(page.locator('.card')).toHaveCount(16)
+  await expect(page).toHaveURL(/\/showcase$/)
+  // One card per docs demo: the original sixteen plus every component page.
+  await expect(page.locator('.card')).toHaveCount(52)
+
+  // The cards now share component types (two menus, three toggle groups), so
+  // every interaction is scoped to the card whose heading names the demo.
+  const card = (title: string) =>
+    page.locator('.card').filter({
+      has: page.getByRole('heading', { name: title, exact: true }),
+    })
 
   // Toggle — aria-pressed follows the Model.
-  const toggle = page.locator('.card [data-slot="toggle"]')
+  const toggle = card('Toggle').locator('[data-slot="toggle"]')
   await toggle.click()
   await expect(toggle).toHaveAttribute('aria-pressed', 'true')
   await toggle.click()
   await expect(toggle).toHaveAttribute('aria-pressed', 'false')
 
   // Switch — starts on, toggles off and on.
-  const sw = page.locator('.card [data-slot="switch"]')
+  const sw = card('Switch').locator('[data-slot="switch"]')
   await expect(sw).toHaveAttribute('data-checked', '')
   await sw.click()
   await expect(sw).not.toHaveAttribute('data-checked', '')
@@ -119,49 +204,50 @@ test('the showcase components hold their state in the Foldkit Model', async ({ p
   await expect(sw).toHaveAttribute('data-checked', '')
 
   // Checkbox group — the Model holds the checked values.
-  await page.locator('.card [data-slot="checkbox"]').nth(1).click()
-  await expect(page.locator('.card [data-slot="checkbox"]').nth(1)).toHaveAttribute('data-checked', '')
-  await page.locator('.card [data-slot="checkbox"]').nth(0).click()
-  await expect(page.locator('.card [data-slot="checkbox"]').nth(0)).not.toHaveAttribute('data-checked', '')
+  const boxes = card('Checkbox group').locator('[data-slot="checkbox"]')
+  await boxes.nth(1).click()
+  await expect(boxes.nth(1)).toHaveAttribute('data-checked', '')
+  await boxes.nth(0).click()
+  await expect(boxes.nth(0)).not.toHaveAttribute('data-checked', '')
 
   // Radio group.
-  await page.locator('.card [data-slot="radio"]').nth(2).click()
-  await expect(page.locator('.card [data-slot="radio"]').nth(2)).toHaveAttribute('data-checked', '')
+  const radios = card('Radio group').locator('[data-slot="radio"]')
+  await radios.nth(2).click()
+  await expect(radios.nth(2)).toHaveAttribute('data-checked', '')
 
   // Tabs — selection is a Model field.
-  await page.locator('.card [data-slot="tabs-tab"]').nth(2).click()
-  await expect(page.locator('.card [data-slot="tabs-tab"]').nth(2)).toHaveAttribute('data-selected', '')
-  await expect(page.locator('.card [data-slot="tabs-tab"]').nth(0)).not.toHaveAttribute('data-selected', '')
+  const tabs = card('Tabs').locator('[data-slot="tabs-tab"]')
+  await tabs.nth(2).click()
+  await expect(tabs.nth(2)).toHaveAttribute('data-selected', '')
+  await expect(tabs.nth(0)).not.toHaveAttribute('data-selected', '')
 
   // Accordion — multiple panels stay open.
-  await page.locator('.card [data-slot="accordion-trigger"]').nth(1).click()
-  await expect(page.locator('.card [data-slot="accordion-panel"]').nth(1)).toBeVisible()
-  await expect(page.locator('.card [data-slot="accordion-panel"]').nth(0)).toBeVisible()
+  const accordion = card('Accordion')
+  await accordion.locator('[data-slot="accordion-trigger"]').nth(1).click()
+  await expect(accordion.locator('[data-slot="accordion-panel"]').nth(1)).toBeVisible()
+  await expect(accordion.locator('[data-slot="accordion-panel"]').nth(0)).toBeVisible()
 
   // Slider — one step with the keyboard, readout included.
-  await page.locator('.card [data-slot="slider-thumb"] input').focus()
+  await card('Slider').locator('[data-slot="slider-thumb"] input').focus()
   await page.keyboard.press('ArrowRight')
-  await expect(page.locator('.card [data-slot="slider-value"]')).toHaveText('$250')
+  await expect(card('Slider').locator('[data-slot="slider-value"]')).toHaveText('$250')
 
   // Rating — the radio inside the star is what takes the press.
-  await page.locator('.card [data-slot="rating-radio"]').nth(1).click()
-  await expect(page.locator('.card', { hasText: 'Rating' })).toContainText('2 of 5')
+  await card('Rating').locator('[data-slot="rating-radio"]').nth(1).click()
+  await expect(card('Rating')).toContainText('2 of 5')
 
   // Segmented control — the indicator slides to the choice.
-  const cardSegmented = page
-    .locator('.card')
-    .filter({ hasText: 'Segmented control' })
-    .locator('[data-slot="segmented-control-item"]')
+  const cardSegmented = card('Segmented control').locator('[data-slot="segmented-control-item"]')
   await cardSegmented.nth(2).click()
   await expect(cardSegmented.nth(2)).toHaveAttribute('data-checked', '')
 
   // Progress — a bare button moves the Model, the layer draws the bar.
   await page.locator('#upload-next').click()
-  await expect(page.locator('.card', { hasText: 'Progress and meter' })).toContainText('60%')
+  await expect(card('Progress and meter')).toContainText('60%')
 
   // Popover — open, dispatch, stay open across the Foldkit re-render.
-  await page.locator('.card [data-slot="popover-trigger"]').click()
-  const popover = page.locator('.card [data-slot="popover-content"]')
+  await card('Popover').locator('[data-slot="popover-trigger"]').click()
+  const popover = card('Popover').locator('[data-slot="popover-content"]')
   await expect(popover).toBeVisible()
   await page.locator('#mark-read').click()
   await expect(popover).toContainText('Marked read 1 times.')
@@ -170,36 +256,37 @@ test('the showcase components hold their state in the Foldkit Model', async ({ p
   await expect(popover).toBeHidden()
 
   // Tooltip on hover.
-  await page.locator('.card [data-slot="tooltip-trigger"]').hover()
-  await expect(page.locator('.card [data-slot="tooltip-content"]')).toBeVisible()
+  await card('Avatar and tooltip').locator('[data-slot="tooltip-trigger"]').hover()
+  await expect(card('Avatar and tooltip').locator('[data-slot="tooltip-content"]')).toBeVisible()
 
   // Dialog — a focused task, confirmed from inside.
-  await page.locator('.card [data-slot="dialog-trigger"]').click()
-  const dialog = page.locator('.card [data-slot="dialog-content"]')
+  await card('Dialog').locator('[data-slot="dialog-trigger"]').click()
+  const dialog = card('Dialog').locator('[data-slot="dialog-content"]')
   await expect(dialog).toBeVisible()
   await page.locator('#confirm-delete').click()
   await expect(dialog).toBeHidden()
-  await expect(page.locator('.card', { hasText: 'Dialog' })).toContainText('Project deleted.')
+  await expect(card('Dialog')).toContainText('Project deleted.')
 
   // Menu — an item reports back, a checkbox item rounds through the Model.
-  await page.locator('.card [data-slot="menu-trigger"]').click()
-  await page.locator('.card [data-slot="menu-item"]').first().click()
-  await expect(page.locator('.card', { hasText: 'Menu' })).toContainText('Last action: rename')
-  await page.locator('.card [data-slot="menu-trigger"]').click()
-  const pin = page.locator('.card [data-slot="menu-checkbox-item"]')
+  const menuCard = card('Menu')
+  await menuCard.locator('[data-slot="menu-trigger"]').click()
+  await menuCard.locator('[data-slot="menu-item"]').first().click()
+  await expect(menuCard).toContainText('Last action: rename')
+  await menuCard.locator('[data-slot="menu-trigger"]').click()
+  const pin = menuCard.locator('[data-slot="menu-checkbox-item"]')
   await expect(pin).toBeVisible()
   await pin.click()
   await expect(pin).toHaveAttribute('data-checked', '')
   await page.keyboard.press('Escape')
 
   // Select — one value from a popup list.
-  await page.locator('.card [data-slot="select-trigger"]').click()
-  await page.locator('.card [data-slot="select-item"]').nth(2).click()
-  await expect(page.locator('.card [data-slot="select-value"]')).toHaveText('Admin')
+  await card('Select').locator('[data-slot="select-trigger"]').click()
+  await card('Select').locator('[data-slot="select-item"]').nth(2).click()
+  await expect(card('Select').locator('[data-slot="select-value"]')).toHaveText('Admin')
 
   // Field and input — typing round-trips through the Model.
-  await page.locator('.card [data-slot="input"]').fill('grace')
-  await expect(page.locator('.card', { hasText: 'Field and input' })).toContainText('Hello, grace.')
+  await card('Field and input').locator('[data-slot="input"]').fill('grace')
+  await expect(card('Field and input')).toContainText('Hello, grace.')
 
   expect(errors).toEqual([])
 })
@@ -210,7 +297,7 @@ test('the showcase components hold their state in the Foldkit Model', async ({ p
 test('the sink renders the reference bento and filters by component names', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/?only=reference')
+  await page.goto('/sink?only=reference')
   await expect(page.locator('.sink .bento')).toBeVisible()
   await expect(page.locator('.tile')).toHaveCount(4)
   await expect(page.locator('#reference-storage')).toHaveAttribute('data-tone', 'butter')
@@ -227,7 +314,7 @@ test('the sink renders the reference bento and filters by component names', asyn
   await expect(page.locator('.filter-count')).toHaveText('1 tile')
 
   // No visible tile here uses both names, so a second name comes from a URL.
-  await page.goto('/?only=reference&uses=Switch,Meter')
+  await page.goto('/sink?only=reference&uses=Switch,Meter')
   await expect(page.locator('.tile:visible')).toHaveCount(2)
   await expect(page.locator('.filter-mode')).toBeVisible()
   await page.locator('.filter-mode button', { hasText: 'All' }).click()
@@ -235,14 +322,14 @@ test('the sink renders the reference bento and filters by component names', asyn
   await expect(page.locator('.tile:visible')).toHaveCount(0)
   await expect(page.locator('.bento-empty')).toBeVisible()
 
-  await page.goto('/?only=reference&uses=Switch')
+  await page.goto('/sink?only=reference&uses=Switch')
   await page.locator('.filter-clear').click()
   await expect(page).toHaveURL(url => url.searchParams.get('only') === 'reference' && !url.searchParams.has('uses'))
   await expect(page.locator('.tile:visible')).toHaveCount(4)
   await expect(page.locator('.filter')).not.toHaveAttribute('data-open', '')
 
   // A ?uses link boots straight into the sink.
-  await page.goto('/?only=reference&uses=Slider')
+  await page.goto('/sink?only=reference&uses=Slider')
   await expect(page.locator('.tile:visible')).toHaveCount(1)
   await expect(page.locator('.tile:visible')).toHaveId('reference-volume')
 
@@ -282,7 +369,7 @@ test('the sink matches the reference tile list exactly', async ({ page }) => {
 test('the reference tiles round-trip their state through the Foldkit Model', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/?only=reference')
+  await page.goto('/sink?only=reference')
 
   // Volume: the slider value is state, and the readout follows it.
   const volume = page.locator('#reference-volume')
@@ -310,13 +397,13 @@ test('the sink keeps the reference behaviors across groups', async ({ page }) =>
   const errors = watchConsole(page)
 
   // A parent checkbox checks its whole group.
-  await page.goto('/?only=forms-alerts')
+  await page.goto('/sink?only=forms-alerts')
   await page.locator('#forms-alerts .fm-al-parent').first().click()
   await expect(page.locator('#forms-alerts .fm-al-count').first()).toHaveText('4 of 4')
   await expect(page.locator('#forms-alerts .fm-al-row ui-checkbox[data-checked]')).toHaveCount(4)
 
   // A color preset repaints the mock site.
-  await page.goto('/?only=forms-brand-color')
+  await page.goto('/sink?only=forms-brand-color')
   await page.locator('#forms-brand-color ui-color-picker-swatch-item').nth(3).click()
   await expect(page.locator('#forms-brand-color .pk-site')).toHaveAttribute(
     'style',
@@ -324,19 +411,19 @@ test('the sink keeps the reference behaviors across groups', async ({ page }) =>
   )
 
   // A meter-backed goal moves with its button.
-  await page.goto('/?only=collections-reading-goal')
+  await page.goto('/sink?only=collections-reading-goal')
   await page.locator('#collections-reading-goal .cl-goal-actions button').nth(1).click()
   await expect(page.locator('#collections-reading-goal .cl-ring-num')).toHaveText('35')
   await expect(page.locator('#collections-reading-goal .cl-goal-left')).toHaveText('17 to go')
 
   // The scroll picker follows the arrow keys.
-  await page.goto('/?only=motion-wheel')
+  await page.goto('/sink?only=motion-wheel')
   await page.locator('#motion-wheel .gs-wheel').first().click()
   await page.keyboard.press('ArrowDown')
   await expect(page.locator('#motion-wheel .gs-alarm-head')).toContainText('8:30 AM')
 
   // The scripted agent runs through the real bridge.
-  await page.goto('/?only=language-agent')
+  await page.goto('/sink?only=language-agent')
   await page.locator('#language-agent button', { hasText: 'Run' }).click()
   await expect(page.locator('#language-agent .lc-agent-log')).toContainText('snapshot()', {
     timeout: 5000,
@@ -353,7 +440,7 @@ test('the sink drags calendar spans and group selections like the reference', as
 
   // The week: a lone plan fills its day column, moves across days, and both
   // of its edges stretch it.
-  await page.goto('/?only=studio-week')
+  await page.goto('/sink?only=studio-week')
   const week = page.locator('#studio-week')
   const folio = week.locator('[data-span-id="portfolio"]')
   await expect(folio).toHaveAttribute('aria-label', 'Folio review, Wednesday 10:00 to 11:30')
@@ -388,7 +475,7 @@ test('the sink drags calendar spans and group selections like the reference', as
   )
 
   // The timeline: the start edge pulls a booking's start, keeping its end.
-  await page.goto('/?only=motion-timeline')
+  await page.goto('/sink?only=motion-timeline')
   const timeline = page.locator('#motion-timeline')
   const vendor = timeline.locator('[data-booking="vendor"]')
   await expect(vendor).toHaveAttribute('aria-label', 'Vendor call, 11:00 to 12:30')
@@ -405,7 +492,7 @@ test('the sink drags calendar spans and group selections like the reference', as
   await expect(vendor).toHaveAttribute('aria-label', 'Vendor call, 10:00 to 12:30')
 
   // The palette: Shift adds to the selection, and a drag carries the group.
-  await page.goto('/?only=motion-palette')
+  await page.goto('/sink?only=motion-palette')
   const palette = page.locator('#motion-palette')
   const swatches = palette.locator('[data-swatch]')
   const chosen = palette.locator('[data-swatch][data-selected]')
@@ -446,7 +533,7 @@ test('the sink drags calendar spans and group selections like the reference', as
 test('the sheet paints a cell range under the pointer like the reference', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/?only=language-sheet')
+  await page.goto('/sink?only=language-sheet')
   const sheet = page.locator('#language-sheet')
   const selected = () =>
     sheet.locator('.lg-sheet-cell[data-selected]').evaluateAll(els => els.map(el => el.id.slice(-3)))
@@ -499,7 +586,7 @@ test('the sink keeps one icon where the port draws it, and rotations that follow
   const errors = watchConsole(page)
 
   // The receipt's caret turns with the panel it opens.
-  await page.goto('/?only=overlays-receipt')
+  await page.goto('/sink?only=overlays-receipt')
   const receipt = page.locator('#overlays-receipt')
   const second = receipt.locator('.ly-order-trigger').nth(1)
   await expect(second.locator('.ly-order-caret')).toHaveCSS('rotate', 'none')
@@ -510,7 +597,7 @@ test('the sink keeps one icon where the port draws it, and rotations that follow
 
   // The presence caret sits at the trigger's far end, as the reference's
   // `margin-left: auto` puts it.
-  await page.goto('/?only=overlays-presence')
+  await page.goto('/sink?only=overlays-presence')
   const presence = page.locator('#overlays-presence')
   await page.waitForTimeout(500)
   const caretBox = await presence.locator('.ov-presence-trigger [class*="ph-"]').boundingBox()
@@ -519,7 +606,7 @@ test('the sink keeps one icon where the port draws it, and rotations that follow
   expect(caretBox.x - triggerBox.x).toBeGreaterThan(100)
 
   // Stepper icons center in their round buttons.
-  await page.goto('/?only=forms-nights')
+  await page.goto('/sink?only=forms-nights')
   const nights = page.locator('#forms-nights')
   const step = async sel => {
     const btn = await nights.locator(sel).boundingBox()
@@ -531,14 +618,14 @@ test('the sink keeps one icon where the port draws it, and rotations that follow
 
   // The rating draws one star per slot, not the pair the element's own
   // masked star would add.
-  await page.goto('/?only=forms-stay-rating')
+  await page.goto('/sink?only=forms-stay-rating')
   const star = page.locator('#forms-stay-rating .pk-star').first()
   await expect(star).toHaveCSS('width', '28px')
   expect(await star.evaluate(el => getComputedStyle(el, '::before').content !== 'none')).toBe(false)
   expect(await star.evaluate(el => el.querySelectorAll('[class*="ph-"]').length)).toBe(2)
 
   // A Shift lasso over the pins adds to what was already selected.
-  await page.goto('/?only=motion-lasso')
+  await page.goto('/sink?only=motion-lasso')
   const lasso = page.locator('#motion-lasso')
   const chosen = () =>
     lasso.locator('[data-pin][data-selected]').evaluateAll(els => els.map(el => el.getAttribute('aria-label')))
@@ -566,29 +653,54 @@ test('the sink keeps one icon where the port draws it, and rotations that follow
   expect(errors).toEqual([])
 })
 
-test('the component index is generated from docs/components.md', async ({ page }) => {
+test('every component has a docs page that runs it live', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/')
-  await page
-    .locator('[data-slot="segmented-control-item"]')
-    .filter({ hasText: 'Components' })
-    .click()
-  const rows = page.locator('.table-wide tbody tr')
-  await expect(rows).toHaveCount(56)
-  await expect(rows.first()).toContainText('foldkit-ui-sdk/accordion')
+  await page.goto('/docs/introduction')
+  // The sidebar lists every guide and every component entry: 8 guides plus the
+  // 52 demo pages that cover the package's 56 import entries.
+  const hrefs = await page.locator('.side-link').evaluateAll(links =>
+    links.map(link => link.getAttribute('href')),
+  )
+  expect(hrefs).toHaveLength(60)
+  expect(hrefs).toContain('/docs/toggle')
+  expect(hrefs).toContain('/docs/waterfall')
+  const guides = new Set([
+    '/docs/introduction',
+    '/docs/install',
+    '/docs/bindings',
+    '/docs/imports',
+    '/docs/goodies',
+    '/docs/commands',
+    '/docs/limits',
+    '/docs/development',
+  ])
+
+  // Every page renders its article and a highlighted sample; every component
+  // page also renders the live demo and its parts table. None trips the crash
+  // UI or logs an error.
+  for (const href of hrefs) {
+    if (!href) continue
+    await page.goto(href)
+    await expect(page.locator('.docs-main h1')).not.toHaveText('')
+    await expect(page.locator('.docs-main .code pre.th-code').first()).toBeAttached()
+    if (!guides.has(href)) {
+      await expect(page.locator('.demo-frame')).toBeVisible()
+      await expect(page.locator('.docs-main .table')).toBeVisible()
+    }
+    await expect(page.locator('[data-foldkit-crash]')).toHaveCount(0)
+  }
 
   expect(errors).toEqual([])
 })
 
-test('the agents page runs the bridge as Foldkit Commands', async ({ page }) => {
+test('the agent bridge runs from the docs commands page as Foldkit Commands', async ({ page }) => {
   const errors = watchConsole(page)
 
-  await page.goto('/')
-  await page
-    .locator('[data-slot="segmented-control-item"]')
-    .filter({ hasText: 'Agents' })
-    .click()
+  // The bridge demo lives on the commands guide now, reached by URL like
+  // every other docs page.
+  await page.goto('/docs/commands')
+  await expect(page.locator('.docs-main h1')).toHaveText('Commands and the agent bridge')
   const switchEl = page.locator('[data-slot="switch"]')
   await expect(switchEl).not.toHaveAttribute('data-checked', '')
 

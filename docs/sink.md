@@ -10,17 +10,23 @@ Open **Sink** in the top navigation, or deep-link straight to a tile or a group:
 
 | URL | What it shows |
 | --- | --- |
-| `/` then **Sink** | The full 145-tile grid |
-| `?only=reference` | Only the reference group |
-| `?only=forms` | A group (`reference`, `forms`, `overlays`, `collections`, `motion`, `language`, `drag`, `studio`) |
-| `?only=forms-checkout` | One tile |
-| `?uses=Dialog` | Tiles that use any selected name |
-| `?uses=Dialog,Menu&mode=all` | Tiles that use every selected name |
+| `/sink` | The full 145-tile grid |
+| `/sink?only=reference` | Only the reference group |
+| `/sink?only=forms` | A group (`reference`, `forms`, `overlays`, `collections`, `motion`, `language`, `drag`, `studio`) |
+| `/sink?only=forms-checkout` | One tile |
+| `/sink?uses=Dialog` | Tiles that use any selected name |
+| `/sink?uses=Dialog,Menu&mode=all` | Tiles that use every selected name |
 
 The filter is the reference filter: every component/helper name on a tile is a `tile-use` button,
-pressing one opens the dark floating bar at the bottom, the bar lists the selected names with an
-`Any / All` control and a clear button, and the selection is written back to the address bar by a
-Foldkit Command. `?only=` and `?uses=` boot straight into the Sink.
+pressing one opens the dark floating bar at the bottom, and the bar lists the selected names with an
+`Any / All` control and a clear button.
+
+The filter is route state, not Model state: `src/route.ts` declares the `Sink` route with its
+`?only=` / `?uses=` / `?mode=` query params through the same bidirectional router that parses them,
+and a filter change returns a `ReplaceUrl` command that writes the sink's next URL (replacing the
+history entry, so filtering never walls the back button up). The URL change re-parses into the
+route, so a shared link and the page it opens can never disagree — and a `?only=` / `?uses=` link
+cold-loads straight into the filtered sink.
 
 ## How it is wired
 
@@ -39,7 +45,7 @@ examples/site/src/sink/
 ```
 
 Each tile is a `Tile` with its own initial state. The state lives in the Model at
-`model.sink.tiles[tile.id]`; `set(next | current => next)` dispatches `SinkTileStateSet`, so a
+`model.sinkTiles[tile.id]`; `set(next | current => next)` dispatches `SinkTileStateSet`, so a
 component's interaction still travels update → view like the rest of the site. The registry applies
 `meta.ts` to every tile, which is why the port cannot drift in copy, size or tone even if a tile
 module's local metadata is edited.
